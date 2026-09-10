@@ -48,7 +48,8 @@ canvas{width:100%;height:180px;display:block}
 <div class="app">
   <div class="top">
     <div><h1>Min träning 💪</h1><div class="sub">4 pass · 30–45 min · hantelbaserat</div></div>
-    <button onclick="resetWeek()">Nollställ data</button>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end"><button onclick="document.getElementById("importFile").click()">Importera</button><button onclick="exportData()">Exportera</button><button onclick="resetWeek()">Nollställ data</button></div>
+    <input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importData(this.files[0]);this.value=''">
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -58,7 +59,7 @@ canvas{width:100%;height:180px;display:block}
     <div><small>Vila</small><strong id="time">01:00</strong></div>
     <div style="display:flex;gap:7px"><button onclick="startTimer()">Start</button><button onclick="stopTimer()">Stopp</button></div>
   </div>
-  <div class="footer">Tekniklänkar öppnas i en ny flik. Börja lätt och öka vikten när repsen känns stabila.</div>
+  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. Exportera gärna en backup före större uppdateringar.</div>
 </div>
 
 <script>
@@ -98,6 +99,62 @@ let checks = JSON.parse(localStorage.getItem("checks") || "{}");
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 let logs = JSON.parse(localStorage.getItem("logs") || "{}");
 let view = localStorage.getItem("view") || "workout";
+const DATA_VERSION = 2;
+
+/*
+  Data format:
+  v1: logs used "date-index" keys, which could collide between workout days.
+  v2: logs use "date|exercise-name" keys.
+
+  Migration uses the workout history to identify which day an old log belonged to.
+  If the old format is ambiguous, it is preserved in legacyLogs instead of being
+  silently assigned to the wrong exercise.
+*/
+function migrateData(){
+  let storedVersion = Number(localStorage.getItem("dataVersion") || 0);
+  if(storedVersion >= DATA_VERSION) return;
+
+  const rawLogs = logs && typeof logs === "object" ? logs : {};
+  const legacy = {};
+  let migrated = 0;
+
+  Object.entries(rawLogs).forEach(([k,v])=>{
+    if(/^\\d{4}-\\d{2}-\\d{2}-\\d+$/.test(k)){
+      legacy[k]=v;
+    }
+  });
+
+  Object.entries(legacy).forEach(([k,v])=>{
+    const date=k.slice(0,10);
+    const index=Number(k.slice(11));
+    const matchingDays=history
+      .filter(x=>x.date===date && Number.isInteger(Number(x.day)))
+      .map(x=>Number(x.day))
+      .filter((x,i,a)=>a.indexOf(x)===i);
+
+    if(matchingDays.length===1 && workouts[matchingDays[0]]?.ex[index]){
+      const name=workouts[matchingDays[0]].ex[index][0];
+      logs[logKey(date,name)]=v;
+      delete logs[k];
+      migrated++;
+    }
+  });
+
+  if(Object.keys(legacy).length){
+    const remaining={};
+    Object.keys(legacy).forEach(k=>{
+      if(Object.prototype.hasOwnProperty.call(logs,k)) remaining[k]=logs[k];
+    });
+    if(Object.keys(remaining).length){
+      localStorage.setItem("legacyLogs",JSON.stringify(remaining));
+    }
+  }
+
+  localStorage.setItem("dataVersion",String(DATA_VERSION));
+  localStorage.setItem("logs",JSON.stringify(logs));
+}
+
+migrateData();
 
 function saveAll(){
   localStorage.setItem("day",day);
@@ -200,10 +257,63 @@ function completeWorkout(){
  saveAll(); render();
 }
 function toggle(i,v){checks[key(i)]=v;saveAll();render()}
+
+function exportData(){
+  const backup={
+    app:"Min träning",
+    dataVersion:DATA_VERSION,
+    exportedAt:new Date().toISOString(),
+    day,checks,history,logs
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="min-traning-backup-"+dateKey()+".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function importData(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(data.app!=="Min träning" || !data.logs || !data.history || !data.checks){
+        throw new Error("Ogiltig backup");
+      }
+      if(!confirm("Importera denna backup och ersätta data som finns i appen nu?")){
+        return;
+      }
+      day=Number(data.day||0);
+      checks=data.checks||{};
+      history=data.history||[];
+      logs=data.logs||{};
+      localStorage.setItem("dataVersion",String(DATA_VERSION));
+      saveAll();
+      render();
+      alert("Backupen är importerad. 💪");
+    }catch(e){
+      alert("Kunde inte läsa backupfilen.");
+    }
+  };
+  reader.readAsText(file);
+}
+
 function resetWeek(){
- if(confirm("Detta nollställer markerade övningar och träningshistoriken. Är du säker?")){
-   checks={};history=[];logs={};saveAll();render()
- }
+  const first=confirm(
+    "VARNING: Detta raderar alla sparade träningsdata i appen, inklusive vikt/reps, markerade övningar och träningshistorik.\n\nÄr du säker?"
+  );
+  if(!first)return;
+  const second=confirm(
+    "Det går inte att ångra detta härifrån. Har du exporterat en backup om du vill kunna återställa datan?"
+  );
+  if(!second)return;
+  checks={};history=[];logs={};
+  localStorage.setItem("dataVersion",String(DATA_VERSION));
+  localStorage.removeItem("legacyLogs");
+  saveAll();render();
 }
 function chartCanvas(exerciseName,canvasId){
   const c=document.getElementById(canvasId); if(!c)return;
@@ -272,7 +382,7 @@ if ("serviceWorker" in navigator) {
   });
   window.addEventListener("load", async () => {
     try {
-      const reg=await navigator.serviceWorker.register("./sw.js?v=9");
+      const reg=await navigator.serviceWorker.register("./sw.js?v=10");
       if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
       setTimeout(()=>reg.update(),1500);
     } catch(e){}
