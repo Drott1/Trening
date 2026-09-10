@@ -4,11 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101827">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Min träning">
-<link rel="manifest" href="manifest.json">
 <title>Min träning</title>
 <style>
 :root{--bg:#0b1220;--panel:#131e31;--panel2:#1a2942;--text:#f4f7fb;--muted:#9eacc0;--accent:#8ed081;--line:#2a3a55;--danger:#ef8d8d}
@@ -102,10 +97,6 @@ let day = Number(localStorage.getItem("day") || 0);
 let checks = JSON.parse(localStorage.getItem("checks") || "{}");
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 let logs = JSON.parse(localStorage.getItem("logs") || "{}");
-function logKey(d,i){return d+"-"+i}
-function getLog(d,i){return logs[logKey(d,i)] || {sets:[{kg:"",reps:""},{kg:"",reps:""},{kg:"",reps:""}]}}
-function saveLog(i,setIndex,field,value){const d=dateKey();const k=logKey(d,i);const x=getLog(d,i);x.sets[setIndex][field]=value;logs[k]=x;localStorage.setItem("logs",JSON.stringify(logs))}
-function previousLogs(i){return Object.entries(logs).filter(([k])=>k.endsWith("-"+i)).sort((a,b)=>a[0].localeCompare(b[0])).slice(-6)}
 let view = localStorage.getItem("view") || "workout";
 
 function saveAll(){
@@ -129,6 +120,48 @@ function weekKey(s){
   const week=Math.ceil((((x-yearStart)/86400000)+1)/7);
   return x.getUTCFullYear()+"-W"+String(week).padStart(2,"0");
 }
+function exerciseId(name){return name.trim().toLowerCase();}
+function logKey(date,name){return date+"|"+exerciseId(name);}
+function getLog(date,name){
+  return logs[logKey(date,name)] || {sets:[{kg:"",reps:""},{kg:"",reps:""},{kg:"",reps:""}]};
+}
+function saveLog(name,setIndex,field,value){
+  const d=dateKey(), k=logKey(d,name), x=getLog(d,name);
+  x.sets[setIndex][field]=value;
+  logs[k]=x;
+  localStorage.setItem("logs",JSON.stringify(logs));
+}
+function exerciseHistory(name){
+  const id=exerciseId(name);
+  return Object.entries(logs)
+    .filter(([k])=>k.startsWith("20") && k.includes("|") && k.slice(11)===id)
+    .map(([k,v])=>({date:k.slice(0,10),sets:v.sets||[]}))
+    .filter(x=>x.sets.some(s=>s.kg!==""&&s.reps!==""))
+    .sort((a,b)=>a.date.localeCompare(b.date));
+}
+function recommendation(name){
+  const entries=exerciseHistory(name);
+  if(!entries.length) return "Första gången: välj en vikt där du har cirka 2–3 reps kvar i tanken.";
+  const last=entries[entries.length-1];
+  const complete=last.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>({kg:Number(s.kg),reps:Number(s.reps)}));
+  if(!complete.length) return "Fyll i vikt och reps från förra passet för att få ett förslag.";
+  const maxKg=Math.max(...complete.map(s=>s.kg));
+  const avgReps=complete.reduce((a,s)=>a+s.reps,0)/complete.length;
+  if(avgReps>=12){
+    const next=Math.round((maxKg+2)*2)/2;
+    return `Förslag idag: <b>${next} kg</b> och sikta på <b>8–12 reps</b>. Du nådde ${Math.round(avgReps*10)/10} reps i snitt senast.`;
+  }
+  if(avgReps>=10) return `Förslag idag: behåll <b>${maxKg} kg</b> och försök slå förra passets reps.`;
+  if(avgReps>=8) return `Förslag idag: behåll <b>${maxKg} kg</b> och försök lägga till 1 rep på något set.`;
+  const down=Math.max(1,Math.round((maxKg-1)*2)/2);
+  return `Förslag idag: behåll <b>${maxKg} kg</b> om tekniken känns bra. Om du inte når 8 reps, prova <b>${down} kg</b>.`;
+}
+function previousResult(name){
+  const e=exerciseHistory(name);
+  if(!e.length)return "";
+  const s=e[e.length-1].sets.filter(x=>x.kg!==""&&x.reps!=="");
+  return s.length ? "Senast: "+s.map(x=>`${x.kg} kg × ${x.reps}`).join(" · ") : "";
+}
 function renderTabs(){
  const t=document.getElementById("tabs"); t.innerHTML="";
  workouts.forEach((w,i)=>{
@@ -144,44 +177,18 @@ function renderTabs(){
  h.onclick=()=>{view="history";render()};
  t.appendChild(h);
 }
-
-function recommendation(exIndex){
-  const entries=exerciseHistory(exIndex);
-  if(!entries.length) return "Börja lugnt. Välj en vikt där du har cirka 2–3 repetitioner kvar i tanken.";
-  const last=entries[entries.length-1];
-  const complete=(last.sets||[]).filter(s=>s.kg!==""&&s.reps!=="").map(s=>({kg:Number(s.kg),reps:Number(s.reps)}));
-  if(!complete.length) return "Fyll i vikt och reps från förra passet för att få ett förslag.";
-  const maxKg=Math.max(...complete.map(s=>s.kg));
-  const avgReps=complete.reduce((a,s)=>a+s.reps,0)/complete.length;
-  const target=12;
-  if(avgReps>=target){
-    const next=Math.round((maxKg+2)*2)/2;
-    return `Förslag idag: <b>${next} kg</b> och sikta på <b>8–12 reps</b>. Du nådde ${Math.round(avgReps*10)/10} reps i snitt senast, så det är dags att prova lite mer vikt.`;
-  }
-  if(avgReps>=10){
-    return `Förslag idag: behåll <b>${maxKg} kg</b> och försök slå förra passets reps, exempelvis ${Math.min(12,Math.floor(avgReps)+1)}–12 reps.`;
-  }
-  if(avgReps>=8){
-    return `Förslag idag: behåll <b>${maxKg} kg</b> och försök lägga till 1 rep på något set. När du når 12 reps på alla set kan du öka vikten.`;
-  }
-  const down=Math.max(1,Math.round((maxKg-1)*2)/2);
-  return `Förslag idag: behåll ${maxKg} kg om tekniken känns bra. Om du inte når 8 reps med god teknik, prova <b>${down} kg</b>.`;
-}
 function render(){
  renderTabs();
  if(view==="history"){renderHistory();return}
  const w=workouts[day];
  let done=w.ex.filter((_,i)=>checks[key(i)]).length;
  let completed=history.some(x=>x.date===dateKey()&&x.day===day);
- let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div>
- <div class="details" style="margin-top:12px">Appen använder enkel dubbel progression: bygg först reps inom 8–12, öka sedan vikten och börja om runt 8 reps.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
+ let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">Appen använder enkel dubbel progression: bygg först reps inom 8–12, öka sedan vikten och börja om runt 8 reps.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
  html+=`<div class="section-title">Passet</div>`;
  w.ex.forEach((e,i)=>{
- const lg=getLog(dateKey(),i);
- const sets=(lg.sets||[]).slice(0,3);
- html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(i)}</div>
- <div class="sets">${sets.map((s,j)=>`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${i},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${i},${j},'reps',this.value)"></div>`).join("")}</div>
- <div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`});
+   const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,3), prev=previousResult(e[0]);
+   html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}<div class="sets">${sets.map((s,j)=>`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
+ });
  document.getElementById("content").innerHTML=html;
 }
 function completeWorkout(){
@@ -190,117 +197,63 @@ function completeWorkout(){
    history.push({date:today,day:day,name:workouts[day].name,title:workouts[day].title});
    history.sort((a,b)=>a.date.localeCompare(b.date));
  }
- saveAll();
- render();
+ saveAll(); render();
 }
 function toggle(i,v){checks[key(i)]=v;saveAll();render()}
 function resetWeek(){
  if(confirm("Detta nollställer markerade övningar och träningshistoriken. Är du säker?")){
-   checks={};history=[];logs={};saveAll();localStorage.setItem("logs","{}");render()
+   checks={};history=[];logs={};saveAll();render()
  }
 }
-
-function exerciseHistory(exIndex){
-  return Object.entries(logs)
-    .filter(([k])=>k.endsWith("-"+exIndex))
-    .map(([k,v])=>({date:k.slice(0,10),sets:v.sets||[]}))
-    .filter(x=>x.sets.some(s=>s.kg!==""&&s.reps!==""))
-    .sort((a,b)=>a.date.localeCompare(b.date));
-}
-function chartCanvas(exIndex, canvasId){
-  const c=document.getElementById(canvasId); if(!c) return;
-  const ctx=c.getContext("2d");
-  const data=exerciseHistory(exIndex).map(x=>{
+function chartCanvas(exerciseName,canvasId){
+  const c=document.getElementById(canvasId); if(!c)return;
+  const ctx=c.getContext("2d"),data=exerciseHistory(exerciseName).map(x=>{
     const vals=x.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>Number(s.kg));
     return {date:x.date,kg:vals.length?Math.max(...vals):0};
   }).filter(x=>x.kg>0);
-  const dpr=window.devicePixelRatio||1, rect=c.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1,rect=c.getBoundingClientRect();
   c.width=rect.width*dpr;c.height=180*dpr;ctx.scale(dpr,dpr);
-  const W=rect.width,H=180,pad={l:38,r:12,t:16,b:28};
-  ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle="#2a3a55";ctx.lineWidth=1;
-  const max=Math.max(1,...data.map(x=>x.kg)); const min=Math.min(0,...data.map(x=>x.kg));
-  const range=max-min||1;
-  for(let j=0;j<=4;j++){
-    const y=pad.t+(H-pad.t-pad.b)*(j/4);
-    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
-    ctx.fillStyle="#9eacc0";ctx.font="10px system-ui";ctx.textAlign="right";
-    ctx.fillText((max-(range*j/4)).toFixed(range<10?1:0)+" kg",pad.l-6,y+3);
-  }
-  if(!data.length){
-    ctx.fillStyle="#9eacc0";ctx.font="13px system-ui";ctx.textAlign="center";
-    ctx.fillText("Logga några pass för att få en kurva",W/2,H/2);
-    return;
-  }
-  const x=i=>data.length===1?W/2:pad.l+(W-pad.l-pad.r)*i/(data.length-1);
-  const y=v=>pad.t+(H-pad.t-pad.b)*(1-(v-min)/range);
-  ctx.strokeStyle="#8ed081";ctx.lineWidth=3;ctx.beginPath();
-  data.forEach((p,i)=>{if(i===0)ctx.moveTo(x(i),y(p.kg));else ctx.lineTo(x(i),y(p.kg))});ctx.stroke();
-  data.forEach((p,i)=>{
-    ctx.fillStyle="#8ed081";ctx.beginPath();ctx.arc(x(i),y(p.kg),4,0,Math.PI*2);ctx.fill();
-  });
+  const W=rect.width,H=180,pad={l:38,r:12,t:16,b:28},max=Math.max(1,...data.map(x=>x.kg)),range=max;
+  ctx.clearRect(0,0,W,H);ctx.strokeStyle="#2a3a55";ctx.lineWidth=1;
+  for(let j=0;j<=4;j++){const y=pad.t+(H-pad.t-pad.b)*j/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle="#9eacc0";ctx.font="10px system-ui";ctx.textAlign="right";ctx.fillText((max-(range*j/4)).toFixed(max<10?1:0)+" kg",pad.l-6,y+3);}
+  if(!data.length){ctx.fillStyle="#9eacc0";ctx.font="13px system-ui";ctx.textAlign="center";ctx.fillText("Logga några pass för att få en kurva",W/2,H/2);return;}
+  const x=i=>data.length===1?W/2:pad.l+(W-pad.l-pad.r)*i/(data.length-1),y=v=>pad.t+(H-pad.t-pad.b)*(1-v/range);
+  ctx.strokeStyle="#8ed081";ctx.lineWidth=3;ctx.beginPath();data.forEach((p,i)=>i?ctx.lineTo(x(i),y(p.kg)):ctx.moveTo(x(i),y(p.kg)));ctx.stroke();
+  data.forEach((p,i)=>{ctx.fillStyle="#8ed081";ctx.beginPath();ctx.arc(x(i),y(p.kg),4,0,Math.PI*2);ctx.fill();});
   ctx.fillStyle="#9eacc0";ctx.font="10px system-ui";ctx.textAlign="center";
   const picks=data.length<=4?data:[data[0],data[Math.floor((data.length-1)/2)],data[data.length-1]];
-  picks.forEach(p=>{
-    const i=data.indexOf(p);ctx.fillText(prettyDate(p.date),x(i),H-9);
-  });
+  picks.forEach(p=>{const i=data.indexOf(p);ctx.fillText(prettyDate(p.date),x(i),H-9);});
 }
 function renderHistory(){
- const sessions=history.length;
- const weeks=new Set(history.map(x=>weekKey(x.date)));
- const sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
- let streak=0;
- const activeWeeks=[...weeks].sort().reverse();
- if(activeWeeks.length){
-   const current=weekKey(dateKey());
-   if(activeWeeks[0]===current){
-     streak=1;
-     for(let i=1;i<activeWeeks.length;i++){
-       if((weekStart(activeWeeks[i-1])-weekStart(activeWeeks[i]))===7) streak++; else break;
-     }
-   }
- }
+ const sessions=history.length,weeks=new Set(history.map(x=>weekKey(x.date))),sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
+ let streak=0;const active=[...weeks].sort().reverse();
+ if(active[0]===weekKey(dateKey())){streak=1;for(let i=1;i<active.length;i++){if((weekStart(active[i-1])-weekStart(active[i]))===7)streak++;else break;}}
  const first=sorted.length?sorted[sorted.length-1].date:null;
- let html=`<section class="hero"><h2>Din träningshistorik 📈</h2><p>Nu sparas även vikt och reps för varje set, så du kan följa den faktiska styrkeutvecklingen.</p>
- <div class="meta"><span class="pill">📅 ${weeks.size} veckor</span><span class="pill">💪 ${sessions} pass</span><span class="pill">🔥 ${streak} veckor i rad</span><span class="pill">🚀 ${first?`Start: ${prettyDate(first)}`:"Ingen start ännu"}</span></div></section>`;
-
- if(!sessions){
-   html+=`<div class="exercise"><div class="name">Historiken börjar här.</div><div class="details">Logga vikt och reps under ett pass och tryck sedan “Markera passet som klart”. Då börjar progressionen byggas.</div></div>`;
- } else {
+ let html=`<section class="hero"><h2>Din träningshistorik 📈</h2><p>Här ser du kontinuitet och progression. Samma övning delar historik mellan dagar, men olika övningar hålls separerade.</p><div class="meta"><span class="pill">📅 ${weeks.size} veckor</span><span class="pill">💪 ${sessions} pass</span><span class="pill">🔥 ${streak} veckor i rad</span><span class="pill">🚀 ${first?`Start: ${prettyDate(first)}`:"Ingen start ännu"}</span></div></section>`;
+ if(!sessions) html+=`<div class="exercise"><div class="name">Historiken börjar här.</div><div class="details">Markera ett pass som klart för att börja bygga historiken.</div></div>`;
+ else{
    html+=`<div class="section-title">Progression per övning</div>`;
-   workouts.forEach((w,di)=>{
-     w.ex.forEach((e,ei)=>{
-       const entries=Object.entries(logs).filter(([k])=>k.endsWith("-"+ei)).sort((a,b)=>a[0].localeCompare(b[0]));
-       if(!entries.length) return;
-       const latest=entries[entries.length-1][1];
-       const nums=latest.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>({kg:Number(s.kg),reps:Number(s.reps)}));
-       const best=entries.reduce((acc,[date,x])=>{
-         (x.sets||[]).forEach(s=>{if(s.kg!==""&&s.reps!==""&&Number(s.kg)>acc.kg) acc={kg:Number(s.kg),reps:Number(s.reps),date};});
-         return acc;
-       },{kg:0,reps:0,date:""});
-       const latestText=nums.length?nums.map(s=>`${s.kg} kg × ${s.reps}`).join(" · "):"Ingen komplett logg";
-       const cid="chart-"+di+"-"+ei;
-       html+=`<article class="exercise"><div class="name">${e[0]}</div><div class="details">Senast: <b>${latestText}</b></div>${best.kg?`<div class="details">Tyngsta registrerade set: <b>${best.kg} kg × ${best.reps}</b> <span style="color:var(--muted)">(${prettyDate(best.date)})</span></div>`:""}<div class="chartwrap"><div class="charttitle">Tyngsta vikt per pass</div><canvas id="${cid}"></canvas></div></article>`;
-     });
-   });
-
+   const seen=new Set();
+   workouts.forEach(w=>w.ex.forEach(e=>{
+     const id=exerciseId(e[0]);if(seen.has(id))return;seen.add(id);
+     const entries=exerciseHistory(e[0]);if(!entries.length)return;
+     const latest=entries[entries.length-1],nums=latest.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>({kg:Number(s.kg),reps:Number(s.reps)}));
+     const best=entries.reduce((acc,x)=>{x.sets.forEach(s=>{if(s.kg!==""&&s.reps!==""&&Number(s.kg)>acc.kg)acc={kg:Number(s.kg),reps:Number(s.reps),date:x.date};});return acc;},{kg:0,reps:0,date:""});
+     const cid="chart-"+encodeURIComponent(id);
+     html+=`<article class="exercise"><div class="name">${e[0]}</div><div class="details">Senast: <b>${nums.length?nums.map(s=>`${s.kg} kg × ${s.reps}`).join(" · "):"Ingen komplett logg"}</b></div>${best.kg?`<div class="details">Tyngsta registrerade set: <b>${best.kg} kg × ${best.reps}</b> <span style="color:var(--muted)">(${prettyDate(best.date)})</span></div>`:""}<div class="chartwrap"><div class="charttitle">Tyngsta vikt per pass</div><canvas id="${cid}"></canvas></div></article>`;
+   }));
    html+=`<div class="section-title">Veckor</div>`;
-   const grouped={};
-   sorted.forEach(x=>{const wk=weekKey(x.date);(grouped[wk]??=[]).push(x)});
-   Object.entries(grouped).forEach(([wk,items])=>{
-     html+=`<article class="exercise"><div class="name">${wk}</div><div class="details" style="margin-top:9px">${items.map(x=>`<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0"><span>${x.name}</span><span style="color:var(--muted)">${prettyDate(x.date)}</span></div>`).join("")}</div></article>`;
-   });
+   const grouped={};sorted.forEach(x=>(grouped[weekKey(x.date)]??=[]).push(x));
+   Object.entries(grouped).forEach(([wk,items])=>{html+=`<article class="exercise"><div class="name">${wk}</div><div class="details" style="margin-top:9px">${items.map(x=>`<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0"><span>${x.name}</span><span style="color:var(--muted)">${prettyDate(x.date)}</span></div>`).join("")}</div></article>`});
    html+=`<div class="section-title">Alla pass</div>`;
    html+=sorted.map(x=>`<article class="exercise"><div class="row"><div style="font-size:22px">✓</div><div><div class="name">${x.title}</div><div class="details">${prettyDate(x.date)} · ${x.name}</div></div></div></article>`).join("");
  }
  document.getElementById("content").innerHTML=html;
- document.querySelectorAll("canvas[id^=\"chart-\"]").forEach(c=>{const parts=c.id.split("-");chartCanvas(Number(parts[1]),c.id)});
+ document.querySelectorAll('canvas[id^="chart-"]').forEach(c=>chartCanvas(decodeURIComponent(c.id.slice(6)),c.id));
 }
 function weekStart(wk){
- const [y,w]=wk.split("-W").map(Number);
- const jan4=new Date(y,0,4,12);
- const day=jan4.getDay()||7;
- const monday=new Date(jan4);
+ const [y,w]=wk.split("-W").map(Number),jan4=new Date(y,0,4,12);
+ const day=jan4.getDay()||7,monday=new Date(jan4);
  monday.setDate(jan4.getDate()-day+1+(w-1)*7);
  return monday.getTime();
 }
@@ -310,9 +263,6 @@ function draw(){document.getElementById("time").textContent=fmt(timer)}
 function startTimer(){if(interval)return;interval=setInterval(()=>{timer--;draw();if(timer<=0){stopTimer();navigator.vibrate?.([200,100,200]);alert("Vilan är slut. Dags för nästa set! 💪")}},1000)}
 function stopTimer(){clearInterval(interval);interval=null;timer=60;draw()}
 draw();render();
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
-}
 </script>
 </body>
 </html>
