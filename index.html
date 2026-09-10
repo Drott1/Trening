@@ -42,6 +42,17 @@ canvas{width:100%;height:180px;display:block}
 
 .recommend{margin-top:10px;padding:10px 11px;border:1px solid #38553a;background:#14231a;border-radius:11px;font-size:13px}
 .recommend b{color:#dff6d9}.hint{color:var(--muted);font-size:11px;margin-top:3px}
+
+.amrapcard{border-color:#4a5568}
+.amraptimer{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;text-align:center;background:#0d1727}
+.amraptimer strong{display:block;font-size:42px;letter-spacing:1px;margin-bottom:10px}
+.amrapcontrols{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+.amrapweights,.amrapresult{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.amrapresult{grid-template-columns:1fr 1fr}
+.amrapweights label,.amrapresult label{font-size:12px;color:var(--muted)}
+.amrapweights input,.amrapresult input{width:100%;box-sizing:border-box;margin-top:4px}
+.check{display:flex;align-items:center;gap:8px;margin-top:14px;font-weight:700}
+@media(max-width:430px){.amrapweights{grid-template-columns:1fr 1fr}.amrapweights label:last-child{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -59,38 +70,38 @@ canvas{width:100%;height:180px;display:block}
     <div><small>Vila</small><strong id="time">01:00</strong></div>
     <div style="display:flex;gap:7px"><button onclick="startTimer()">Start</button><button onclick="stopTimer()">Stopp</button></div>
   </div>
-  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. Exportera gärna en backup före större uppdateringar.</div>
+  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. · v18 Exportera gärna en backup före större uppdateringar.</div>
 </div>
 
 <script>
 const workouts = [
- {name:"Dag 1",title:"Squat + drag + höft",desc:"Ben, rumpa, baksida lår och axlar.",ex:[
-  ["Goblet squat","Squat","3 × 8–12","Håll en hantel framför bröstet. Knä över fot, sitt ner och res dig genom hela foten.","https://www.youtube.com/results?search_query=NASM+goblet+squat+proper+form"],
-  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Har du ingen stång: byt till hantel pullover, 3 × 10–15.","https://www.youtube.com/results?search_query=NASM+pull+up+proper+form"],
+ {name:"Dag 1",title:"Squat + pull + carry",desc:"Helkropp med knäböj, drag, höft och grepp.",ex:[
+  ["Hantel thruster","Squat + push","3 × 8–12","Gå ner i en kontrollerad knäböj och använd kraften från benen för att pressa hantlarna över huvudet.","https://www.crossfit.com/essentials/the-dumbbell-thruster"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Gör kontrollerade reps. Använd band eller assisterad maskin om du behöver.","https://www.nasm.org/resource-center/exercise-library/pull-up"],
   ["Rumänska marklyft","Hinge","3 × 8–12","Mjuk knävinkel, skjut höften bakåt och håll hantlarna nära benen.","https://www.youtube.com/watch?v=aa57T45iFSE"],
-  ["Hantelpress över huvudet","Push · vertikalt","2–3 × 8–12","Spänn bålen och pressa hantlarna kontrollerat över huvudet.","https://www.youtube.com/watch?v=MMjBnEBnZKM"],
-  ["Farmer's carry","Carry","2 × 40–60 sek","Tungt men kontrollerat. Gå stolt och håll bålen stabil.","https://www.youtube.com/results?search_query=NASM+goblet+squat+proper+form"]
+  ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/sida","Stöd ena handen och dra hanteln mot höften. Håll ryggen stabil.","https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"],
+  ["Farmer's carry","Carry","2 × 40–60 sek","Tungt men kontrollerat. Gå stolt och håll bålen stabil.","https://www.acefitness.org/resources/everyone/exercise-library/"]
  ]},
- {name:"Dag 2",title:"Hinge + press",desc:"Höftstyrka, bröst, ben och bål.",ex:[
-  ["Hantelmarklyft från golv","Hinge","3 × 8–10","Hantlarna börjar på golvet. Böj knä och höft tillsammans och res dig med rak bål.","https://www.acefitness.org/resources/pros/expert-articles/7073/4-deadlift-variations-to-spice-up-your-programming/"],
-  ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg. Sänk armbågarna kontrollerat tills överarmarna når golvet.","https://www.youtube.com/results?search_query=dumbbell+floor+press+proper+form+short"],
-  ["Bulgarian split squat","Squat","2–3 × 8–10/ben","Bakre fot på stol/soffa. Sänk dig rakt ner och tryck upp med främre benet.","https://www.youtube.com/watch?v=hbw7hdyOpq0"],
-  ["Pull-up / hantel pullover","Pull · vertikalt","2–3 × 6–10 / 10–15","Välj pull-up om du har stång, annars hantel pullover.","https://www.youtube.com/results?search_query=dumbbell+pullover+proper+form+short"],
-  ["Russian twist","Rotate","2 × 10–15/sida","Lätt vikt. Rotera från bålen, inte genom att kasta hanteln mellan händerna.","https://www.youtube.com/results?search_query=russian+twist+proper+form+short"]
+ {name:"Dag 2",title:"Clean + press + ben",desc:"Explosiv höft, ensidigt benarbete, press och bål.",ex:[
+  ["Hantel hang clean","Power","3 × 6–8","Starta med hantlarna vid låren. Explodera med höften och fånga hantlarna vid axlarna.","https://www.crossfit.com/essentials/the-dumbbell-hang-clean"],
+  ["Bulgarian split squat","Squat","2–3 × 8–10/ben","Bakre fot på stol eller soffa. Sänk dig kontrollerat och tryck upp med främre benet.","https://www.youtube.com/watch?v=hbw7hdyOpq0"],
+  ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg. Sänk armbågarna kontrollerat tills överarmarna når golvet.","https://library.theprehabguys.com/vimeo-video/floor-press-with-dumbbell/"],
+  ["Hantelsving","Hinge + power","3 × 12–20","Driv hanteln med höften, inte med armarna. Håll bålen spänd.","https://www.exerciselibrary.com/exercise/dumbbell-swing/"],
+  ["Russian twist","Core","2 × 10–15/sida","Rotera kontrollerat från bålen och håll rörelsen stabil.","https://www.nasm.org/resource-center/exercise-library/russian-twist"]
  ]},
- {name:"Dag 3",title:"Utfall + rygg + rumpa",desc:"Dagens tydligaste rumpfokus 🍑",ex:[
-  ["Bakåtutfall med hantlar","Lunge","3 × 8–12/ben","Steg bakåt, sjunk kontrollerat och tryck upp genom främre foten.","https://www.youtube.com/results?search_query=dumbbell+reverse+lunge+proper+form+short"],
-  ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/arm","Stöd ena handen på stabil yta, håll ryggen neutral och dra armbågen bakåt.","https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"],
-  ["Glute bridge på golv","Hinge","3 × 10–15","Hantel över höften. Pressa höften upp och spänn rumpan i toppläget.","https://www.youtube.com/results?search_query=dumbbell+glute+bridge+proper+form+short"],
-  ["Hantelpress på golv","Push · horisontellt","2–3 × 8–12","Kontrollerad sänkning och stabila handleder.","https://www.youtube.com/results?search_query=dumbbell+floor+press+proper+form+short"],
-  ["Suitcase carry","Carry","2 × 30–45 sek/sida","En tung hantel i ena handen. Gå utan att luta kroppen åt sidan.","https://www.youtube.com/results?search_query=suitcase+carry+proper+form+short"]
+ {name:"Dag 3",title:"Lunge + push + pull",desc:"Ensidig benstyrka, press, drag och tungt bärande.",ex:[
+  ["Bakåtutfall → knälyft","Lunge + balance","3 × 8–10/ben","Ta ett steg bakåt, pressa upp och avsluta med ett kontrollerat knälyft.","https://www.nasm.org/resource-center/blog/squat-alternatives"],
+  ["Hantel push press","Push · power","3 × 8–12","Böj lätt i knäna och använd benen för att hjälpa hantlarna upp över huvudet.","https://www.crossfit.com/essentials/the-dumbbell-push-press"],
+  ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/sida","Dra hanteln mot höften och håll skuldran kontrollerad.","https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"],
+  ["Hantel snatch","Power · unilateral","3 × 6–8/sida","Explosivt från golvet till över huvudet. Låt höft och ben skapa kraften och håll vikten nära kroppen.","https://www.crossfit.com/essentials/the-dumbbell-power-snatch"],
+  ["Suitcase carry","Carry","2 × 40–60 sek/sida","Bär en tung hantel i ena handen. Gå utan att luta kroppen åt sidan.","https://www.acefitness.org/resources/everyone/exercise-library/358/suitcase-carry/"]
  ]},
- {name:"Dag 4",title:"Höft + axlar + enbensarbete",desc:"Styrka, balans och bålstabilitet.",ex:[
-  ["Rumänska marklyft","Hinge","3 × 8–12","Skjut höften bakåt tills du känner tydlig spänning i baksida lår.","https://www.youtube.com/watch?v=aa57T45iFSE"],
-  ["Hantelpress över huvudet","Push · vertikalt","3 × 8–12","Pressa rakt upp med kontrollerad väg ner.","https://www.youtube.com/watch?v=MMjBnEBnZKM"],
-  ["Gående eller bakåtutfall","Lunge","2–3 × 10/ben","Välj bakåtutfall om du tränar hemma och har begränsat utrymme.","https://www.youtube.com/results?search_query=dumbbell+reverse+lunge+proper+form+short"],
-  ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/arm","Dra mot höften och undvik att vrida överkroppen.","https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"],
-  ["Anti-rotation: suitcase hold","Anti-rotate","2 × 30–45 sek/sida","Stå still med en tung hantel på ena sidan. Håll kroppen helt rak.","https://www.youtube.com/results?search_query=suitcase+hold+anti+rotation+proper+form+short"]
+ {name:"Dag 4",title:"Helkropp + kondition",desc:"Helkropp med explosiv styrka och ett kort AMRAP-finisher.",ex:[
+  ["Devil's press","Helkropp + power","3 × 6–10","Burpee med hantlar följt av en flytande press över huvudet. Håll tempot kontrollerat.","https://barbend.com/devils-press/"],
+  ["Goblet squat","Squat","3 × 8–12","Håll en hantel framför bröstet. Sitt ner kontrollerat och res dig genom hela foten.","https://www.nasm.org/resource-center/exercise-library/goblet-squat"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Kontrollerade reps. Använd band eller assisterad maskin om du behöver.","https://www.nasm.org/resource-center/exercise-library/pull-up"],
+  ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg och pressa hantlarna kontrollerat från golvet.","https://library.theprehabguys.com/vimeo-video/floor-press-with-dumbbell/"],
+  ["AMRAP 8 min","AMRAP","8 min","Så många varv som möjligt på 8 minuter: 8 hantelsvingar, 8 walking lunges och 6 burpees. Logga rundor + extra reps efteråt.","https://www.crossfit.com/faq/exercises"]
  ]}
 ];
 
@@ -162,6 +173,105 @@ function exerciseId(name){return name.trim().toLowerCase();}
 function logKey(date,name,workoutDay=day){return date+"|"+workoutDay+"|"+exerciseId(name);}
 function isPullup(name){return name.toLowerCase().includes("pull-up");}
 function isCarry(name){return name.toLowerCase().includes("carry");}
+function isAmrap(name){return name==="AMRAP 8 min";}
+function amrapKey(date=dateKey(), workoutDay=3){return date+"|"+workoutDay+"|amrap";}
+function getAmrapLog(date=dateKey(), workoutDay=3){
+  const k=amrapKey(date,workoutDay);
+  return logs[k] || {
+    rounds:"", extra:"",
+    exercises:[
+      {name:"Hantelsving",weight:""},
+      {name:"Walking lunges",weight:""},
+      {name:"Burpees",weight:""}
+    ]
+  };
+}
+function saveAmrapField(field,value){
+  const k=amrapKey(), x=getAmrapLog();
+  x[field]=value; logs[k]=x; localStorage.setItem("logs",JSON.stringify(logs));
+}
+function saveAmrapWeight(index,value){
+  const k=amrapKey(), x=getAmrapLog();
+  x.exercises[index].weight=value; logs[k]=x; localStorage.setItem("logs",JSON.stringify(logs));
+}
+function amrapHistory(){
+  return Object.entries(logs)
+    .filter(([k,v])=>k.split("|")[2]==="amrap" && v && (v.rounds!=="" || v.extra!==""))
+    .map(([k,v])=>({date:k.split("|")[0],day:Number(k.split("|")[1]),...v}))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.day-b.day);
+}
+function lastAmrapResult(){
+  const h=amrapHistory();
+  return h.length ? h[h.length-1] : null;
+}
+function amrapResultText(x){
+  if(!x) return "";
+  const r=Number(x.rounds)||0, e=Number(x.extra)||0;
+  return r+" rundor + "+e+" reps";
+}
+function amrapWeightText(x){
+  if(!x?.exercises) return "";
+  return x.exercises.map(e=>e.name+": "+(e.weight!==""?e.weight+" kg":"ej angiven")).join(" · ");
+}
+let amrapTimerId=null, amrapEnd=0, amrapRemaining=480, amrapRunning=false, amrapWakeLock=null;
+async function requestAmrapWakeLock(){
+  try{
+    if("wakeLock" in navigator && !amrapWakeLock) amrapWakeLock=await navigator.wakeLock.request("screen");
+  }catch(e){}
+}
+async function releaseAmrapWakeLock(){
+  try{if(amrapWakeLock){await amrapWakeLock.release();amrapWakeLock=null;}}catch(e){amrapWakeLock=null;}
+}
+function formatAmrapTime(s){
+  s=Math.max(0,Math.ceil(s));
+  return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+}
+function updateAmrapTimer(){
+  if(!amrapRunning) return;
+  amrapRemaining=Math.max(0,(amrapEnd-Date.now())/1000);
+  const el=document.getElementById("amrapTime");
+  if(el) el.textContent=formatAmrapTime(amrapRemaining);
+  if(amrapRemaining<=0){
+    amrapRunning=false; clearInterval(amrapTimerId); amrapTimerId=null;
+    releaseAmrapWakeLock();
+    if(navigator.vibrate) navigator.vibrate([250,100,250]);
+    const status=document.getElementById("amrapStatus");
+    if(status) status.textContent="⏱ Tiden är slut! Fyll i rundor och extra reps.";
+  }
+}
+async function startAmrap(){
+  if(amrapRunning) return;
+  if(amrapRemaining<=0) amrapRemaining=480;
+  amrapEnd=Date.now()+amrapRemaining*1000;
+  amrapRunning=true;
+  await requestAmrapWakeLock();
+  clearInterval(amrapTimerId); amrapTimerId=setInterval(updateAmrapTimer,200);
+  updateAmrapTimer();
+  const status=document.getElementById("amrapStatus"); if(status) status.textContent="Kör! Försök hålla ett jämnt tempo.";
+}
+function pauseAmrap(){
+  if(!amrapRunning) return;
+  amrapRemaining=Math.max(0,(amrapEnd-Date.now())/1000);
+  amrapRunning=false; clearInterval(amrapTimerId); amrapTimerId=null;
+  releaseAmrapWakeLock();
+  const status=document.getElementById("amrapStatus"); if(status) status.textContent="Pausad. Tryck Fortsätt när du är redo.";
+  updateAmrapTimer();
+}
+function stopAmrap(){
+  amrapRunning=false; clearInterval(amrapTimerId); amrapTimerId=null;
+  releaseAmrapWakeLock(); amrapRemaining=480;
+  const el=document.getElementById("amrapTime"); if(el) el.textContent="08:00";
+  const status=document.getElementById("amrapStatus"); if(status) status.textContent="Timern är stoppad.";
+}
+function toggleAmrap(index,checked){
+  if(checked){
+    const k=amrapKey(), x=getAmrapLog();
+    logs[k]=x; localStorage.setItem("logs",JSON.stringify(logs));
+  }
+  checks[key(index)]=checked; saveAll(); render();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&amrapRunning) requestAmrapWakeLock();});
+
 function setCount(name, prescription){
   // Prescriptions like "2 × ..." mean exactly 2 sets.
   // "2–3 × ..." or "3 × ..." retain the flexible/required number.
@@ -273,12 +383,24 @@ function render(){
  const w=workouts[day];
  let done=w.ex.filter((_,i)=>checks[key(i)]).length;
  let completed=history.some(x=>x.date===dateKey()&&x.day===day);
- let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">För de flesta styrkeövningar: bygg först reps inom 8–12 och öka sedan vikten. Pull-ups och carries har egen progression.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
+ let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">För styrkeövningar: bygg först reps inom angivet spann och öka sedan vikten. Pull-ups, carries och AMRAP har egen progression.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
  html+=`<div class="section-title">Passet</div>`;
  w.ex.forEach((e,i)=>{
-   const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,3), prev=previousResult(e[0]);
-   const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.reps!=="" || s.seconds!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
-   html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.slice(0,setCount(e[0],e[2])).map((s,j)=>isPullup(e[0])?`<div class="setrow"><span>Set ${j+1}</span><select onchange="saveLog(${JSON.stringify(e[0])},${j},'mode',this.value)"><option ${(!s.mode||s.mode==="Utan assistans")?"selected":""}>Utan assistans</option><option ${s.mode==="Med band"?"selected":""}>Med band</option><option ${s.mode==="Assisterad maskin"?"selected":""}>Assisterad maskin</option></select><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`:isCarry(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="1" step="1" placeholder="sek" value="${s.seconds||""}" onchange="saveLog(${JSON.stringify(e[0])},${j},'seconds',this.value)"></div>`:`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
+   if(isAmrap(e[0])){
+     const a=getAmrapLog(), prevA=lastAmrapResult(), checked=!!checks[key(i)];
+     const prevNote=prevA
+       ? `<div class="recommend"><b>Senast: ${amrapResultText(prevA)}</b><div class="hint">${amrapWeightText(prevA)}. Försök slå resultatet nästa gång.</div></div>`
+       : `<div class="recommend"><b>Första AMRAP-pass</b><div class="hint">Spara ett resultat efteråt så har du något att slå nästa gång.</div></div>`;
+     html+=`<article class="exercise amrapcard"><div class="row"><input class="check" type="checkbox" ${checked?"checked":""} onchange="toggleAmrap(${i},this.checked)"><div style="width:100%"><div class="pattern">AMRAP · 8 minuter</div><div class="name">🔥 ${e[0]}</div><div class="details"><b>8 min</b> · ${e[3]}</div>${prevNote}
+       <div class="amraptimer"><strong id="amrapTime">${formatAmrapTime(amrapRemaining)}</strong><div class="amrapcontrols"><button onclick="startAmrap()">${amrapRunning?"Kör…":"Start / fortsätt"}</button><button onclick="pauseAmrap()">Paus</button><button onclick="stopAmrap()">Stopp</button></div><div id="amrapStatus" class="hint">${amrapRunning?"Kör!":"Redo när du är."}</div></div>
+       <div class="amrapweights"><label>Hantelsving<input type="number" min="0" step="0.5" value="${a.exercises[0].weight||""}" onchange="saveAmrapWeight(0,this.value)" placeholder="kg"></label><label>Walking lunges<input type="number" min="0" step="0.5" value="${a.exercises[1].weight||""}" onchange="saveAmrapWeight(1,this.value)" placeholder="kg/hantel"></label><label>Burpees<input value="Kroppsvikt" disabled></label></div>
+       <div class="amrapresult"><label>Rundor<input type="number" min="0" step="1" value="${a.rounds||""}" onchange="saveAmrapField('rounds',this.value)" placeholder="0"></label><label>Extra reps<input type="number" min="0" max="22" step="1" value="${a.extra||""}" onchange="saveAmrapField('extra',this.value)" placeholder="0"></label></div>
+       <div class="actions"><span class="link">8 hantelsvingar · 8 walking lunges · 6 burpees</span> · <a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Övningsguide ↗</a></div></div></div></article>`;
+   }else{
+     const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,setCount(e[0],e[2])), prev=previousResult(e[0]);
+     const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.reps!=="" || s.seconds!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
+     html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.map((s,j)=>isPullup(e[0])?`<div class="setrow"><span>Set ${j+1}</span><select onchange="saveLog(${JSON.stringify(e[0])},${j},'mode',this.value)"><option ${(!s.mode||s.mode==="Utan assistans")?"selected":""}>Utan assistans</option><option ${s.mode==="Med band"?"selected":""}>Med band</option><option ${s.mode==="Assisterad maskin"?"selected":""}>Assisterad maskin</option></select><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`:isCarry(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="1" step="1" placeholder="sek" value="${s.seconds||""}" onchange="saveLog(${JSON.stringify(e[0])},${j},'seconds',this.value)"></div>`:`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
+   }
  });
  document.getElementById("content").innerHTML=html;
 }
@@ -295,23 +417,23 @@ function toggle(i,v){
   const exerciseName=workouts[day].ex[i][0];
   if(article){
     const x=getLog(dateKey(),exerciseName);
+    const n=setCount(exerciseName,workouts[day].ex[i][2]);
     if(isPullup(exerciseName)){
       const rows=article.querySelectorAll(".sets .setrow");
       rows.forEach((row,j)=>{
-        const select=row.querySelector("select");
-        const input=row.querySelector("input");
+        const select=row.querySelector("select"), input=row.querySelector("input");
         if(select)x.sets[j].mode=select.value;
         if(input)x.sets[j].reps=input.value;
       });
     }else if(isCarry(exerciseName)){
       const inputs=article.querySelectorAll(".sets input");
-      for(let j=0;j<3;j++){
+      for(let j=0;j<n;j++){
         x.sets[j].kg=inputs[j*2]?.value ?? x.sets[j].kg;
         x.sets[j].seconds=inputs[j*2+1]?.value ?? x.sets[j].seconds;
       }
     }else{
       const inputs=article.querySelectorAll(".sets input");
-      for(let j=0;j<3;j++){
+      for(let j=0;j<n;j++){
         x.sets[j].kg=inputs[j*2]?.value ?? x.sets[j].kg;
         x.sets[j].reps=inputs[j*2+1]?.value ?? x.sets[j].reps;
       }
@@ -466,6 +588,14 @@ function renderHistory(){
  }
  document.getElementById("content").innerHTML=html;
  document.querySelectorAll('canvas[id^="chart-"]').forEach(c=>chartCanvas(decodeURIComponent(c.id.slice(6)),c.id));
+ const ah=amrapHistory();
+ if(ah.length){
+   html+=`<div class="section-title">🔥 AMRAP-resultat</div>`;
+   ah.slice().reverse().forEach(x=>{
+     html+=`<article class="exercise"><div class="name">${prettyDate(x.date)} · ${amrapResultText(x)}</div><div class="details">${amrapWeightText(x)}</div></article>`;
+   });
+ }
+
 }
 function weekStart(wk){
  const [y,w]=wk.split("-W").map(Number),jan4=new Date(y,0,4,12);
