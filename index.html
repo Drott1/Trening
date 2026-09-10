@@ -263,6 +263,21 @@ function draw(){document.getElementById("time").textContent=fmt(timer)}
 function startTimer(){if(interval)return;interval=setInterval(()=>{timer--;draw();if(timer<=0){stopTimer();navigator.vibrate?.([200,100,200]);alert("Vilan är slut. Dags för nästa set! 💪")}},1000)}
 function stopTimer(){clearInterval(interval);interval=null;timer=60;draw()}
 draw();render();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!sessionStorage.getItem("pwaReloaded")) {
+      sessionStorage.setItem("pwaReloaded","1");
+      location.reload();
+    }
+  });
+  window.addEventListener("load", async () => {
+    try {
+      const reg=await navigator.serviceWorker.register("./sw.js?v=9");
+      if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
+      setTimeout(()=>reg.update(),1500);
+    } catch(e){}
+  });
+}
 </script>
 </body>
 </html>
