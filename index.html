@@ -244,7 +244,8 @@ function render(){
  html+=`<div class="section-title">Passet</div>`;
  w.ex.forEach((e,i)=>{
    const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,3), prev=previousResult(e[0]);
-   html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}<div class="sets">${sets.map((s,j)=>`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
+   const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.kg!==""&&s.reps!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
+   html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.map((s,j)=>`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
  });
  document.getElementById("content").innerHTML=html;
 }
@@ -256,7 +257,22 @@ function completeWorkout(){
  }
  saveAll(); render();
 }
-function toggle(i,v){checks[key(i)]=v;saveAll();render()}
+function toggle(i,v){
+  const article=document.querySelectorAll(".exercise")[i];
+  const exerciseName=workouts[day].ex[i][0];
+  if(article){
+    const inputs=article.querySelectorAll(".sets input");
+    const x=getLog(dateKey(),exerciseName);
+    for(let j=0;j<3;j++){
+      x.sets[j].kg=inputs[j*2]?.value ?? x.sets[j].kg;
+      x.sets[j].reps=inputs[j*2+1]?.value ?? x.sets[j].reps;
+    }
+    logs[logKey(dateKey(),exerciseName)]=x;
+  }
+  checks[key(i)]=v;
+  saveAll();
+  render();
+}
 
 function exportData(){
   const backup={
@@ -382,7 +398,7 @@ if ("serviceWorker" in navigator) {
   });
   window.addEventListener("load", async () => {
     try {
-      const reg=await navigator.serviceWorker.register("./sw.js?v=10");
+      const reg=await navigator.serviceWorker.register("./sw.js?v=11");
       if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
       setTimeout(()=>reg.update(),1500);
     } catch(e){}
