@@ -99,7 +99,7 @@ let checks = JSON.parse(localStorage.getItem("checks") || "{}");
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 let logs = JSON.parse(localStorage.getItem("logs") || "{}");
 let view = localStorage.getItem("view") || "workout";
-const DATA_VERSION = 2;
+const DATA_VERSION = 3;
 
 /*
   Data format:
@@ -115,45 +115,26 @@ function migrateData(){
   if(storedVersion >= DATA_VERSION) return;
 
   const rawLogs = logs && typeof logs === "object" ? logs : {};
-  const legacy = {};
-  let migrated = 0;
+  const oldEntries = Object.entries(rawLogs).filter(([k])=>/^20\d{2}-\d{2}-\d{2}\|/.test(k));
 
-  Object.entries(rawLogs).forEach(([k,v])=>{
-    if(/^\\d{4}-\\d{2}-\\d{2}-\\d+$/.test(k)){
-      legacy[k]=v;
-    }
-  });
+  oldEntries.forEach(([k,v])=>{
+    const parts=k.split("|");
+    const date=parts[0], id=parts.slice(1).join("|");
+    if(parts.length!==2) return;
 
-  Object.entries(legacy).forEach(([k,v])=>{
-    const date=k.slice(0,10);
-    const index=Number(k.slice(11));
-    const matchingDays=history
-      .filter(x=>x.date===date && Number.isInteger(Number(x.day)))
-      .map(x=>Number(x.day))
-      .filter((x,i,a)=>a.indexOf(x)===i);
-
-    if(matchingDays.length===1 && workouts[matchingDays[0]]?.ex[index]){
-      const name=workouts[matchingDays[0]].ex[index][0];
-      logs[logKey(date,name)]=v;
+    // If the old log can be tied to a completed workout on that date,
+    // assign it to that day's workout. If several matching days exist,
+    // keep the old record untouched as a legacy backup rather than guessing.
+    const matches=(history||[]).filter(h=>h.date===date && workouts[h.day]?.ex?.some(e=>exerciseId(e[0])===id));
+    if(matches.length===1){
+      logs[date+"|"+matches[0].day+"|"+id]=v;
       delete logs[k];
-      migrated++;
     }
   });
-
-  if(Object.keys(legacy).length){
-    const remaining={};
-    Object.keys(legacy).forEach(k=>{
-      if(Object.prototype.hasOwnProperty.call(logs,k)) remaining[k]=logs[k];
-    });
-    if(Object.keys(remaining).length){
-      localStorage.setItem("legacyLogs",JSON.stringify(remaining));
-    }
-  }
 
   localStorage.setItem("dataVersion",String(DATA_VERSION));
   localStorage.setItem("logs",JSON.stringify(logs));
 }
-
 migrateData();
 
 function saveAll(){
@@ -178,7 +159,7 @@ function weekKey(s){
   return x.getUTCFullYear()+"-W"+String(week).padStart(2,"0");
 }
 function exerciseId(name){return name.trim().toLowerCase();}
-function logKey(date,name){return date+"|"+exerciseId(name);}
+function logKey(date,name,workoutDay=day){return date+"|"+workoutDay+"|"+exerciseId(name);}
 function isPullup(name){return name.toLowerCase().includes("pull-up");}
 function isCarry(name){return name.toLowerCase().includes("carry");}
 function getLog(date,name){
@@ -196,10 +177,13 @@ function saveLog(name,setIndex,field,value){
 function exerciseHistory(name){
   const id=exerciseId(name);
   return Object.entries(logs)
-    .filter(([k])=>k.startsWith("20") && k.includes("|") && k.slice(11)===id)
-    .map(([k,v])=>({date:k.slice(0,10),sets:v.sets||[]}))
+    .filter(([k])=>{
+      const p=k.split("|");
+      return p[0]?.startsWith("20") && p.length>=3 && p.slice(2).join("|")===id;
+    })
+    .map(([k,v])=>({date:k.split("|")[0],day:Number(k.split("|")[1]),sets:v.sets||[]}))
     .filter(x=>x.sets.some(s=>s.reps!=="" || s.seconds!==""))
-    .sort((a,b)=>a.date.localeCompare(b.date));
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.day-b.day);
 }
 function recommendation(name){
   const entries=exerciseHistory(name);
@@ -499,7 +483,7 @@ if ("serviceWorker" in navigator) {
   });
   window.addEventListener("load", async () => {
     try {
-      const reg=await navigator.serviceWorker.register("./sw.js?v=14");
+      const reg=await navigator.serviceWorker.register("./sw.js?v=15");
       if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
       setTimeout(()=>reg.update(),1500);
     } catch(e){}
