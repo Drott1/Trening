@@ -206,7 +206,7 @@ function recommendation(name){
   if(isCarry(name)){
     if(!entries.length) return "Första gången: välj en vikt där du kan gå stabilt i cirka 40–60 sekunder.";
     const last=entries[entries.length-1];
-    const sets=(last.sets||[]).filter(s=>s.seconds!=="" && s.kg!=="");
+    const sets=(last.sets||[]).filter(s=>s.seconds!=="" && s.kg!=="" && Number.isFinite(Number(s.seconds)) && Number.isFinite(Number(s.kg)));
     if(!sets.length) return "Fyll i vikt och sekunder från förra passet för att få ett förslag.";
     const maxKg=Math.max(...sets.map(s=>Number(s.kg)));
     const avgSec=sets.reduce((a,s)=>a+Number(s.seconds),0)/sets.length;
@@ -254,8 +254,11 @@ function previousResult(name){
     return "Senast: "+s.map((x,i)=>`${x.mode||"Utan assistans"} × ${x.reps}`).join(" · ");
   }
   if(isCarry(name)){
-    const carried=e[e.length-1].sets.filter(x=>x.kg!==""&&x.seconds!=="");
-    return carried.length ? "Senast: "+carried.map(x=>`${x.kg} kg × ${x.seconds} sek`).join(" · ") : "";
+    const carried=e[e.length-1].sets.filter(x=>x.kg!==""&&x.seconds!==""&&Number.isFinite(Number(x.seconds)));
+    const legacy=e[e.length-1].sets.filter(x=>x.kg!==""&&x.seconds==="");
+    if(carried.length) return "Senast: "+carried.map(x=>`${x.kg} kg × ${x.seconds} sek`).join(" · ");
+    if(legacy.length) return "Senast: äldre logg utan registrerad tid. Fyll i sekunder på nästa pass.";
+    return "";
   }
   const weighted=s.filter(x=>x.kg!=="");
   return weighted.length ? "Senast: "+weighted.map(x=>`${x.kg} kg × ${x.reps}`).join(" · ") : "";
@@ -390,23 +393,44 @@ function resetWeek(){
 }
 function chartCanvas(exerciseName,canvasId){
   const c=document.getElementById(canvasId); if(!c)return;
-  const ctx=c.getContext("2d"),data=exerciseHistory(exerciseName).map(x=>{
-    const vals=x.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>Number(s.kg));
-    return {date:x.date,kg:vals.length?Math.max(...vals):0};
-  }).filter(x=>x.kg>0);
+  const ctx=c.getContext("2d"),pull=isPullup(exerciseName),carry=isCarry(exerciseName);
+  const data=exerciseHistory(exerciseName).map(x=>{
+    if(pull){
+      const vals=x.sets.filter(s=>s.reps!=="").map(s=>Number(s.reps)).filter(Number.isFinite);
+      return {date:x.date,value:vals.length?Math.max(...vals):0};
+    }
+    if(carry){
+      const vals=x.sets.filter(s=>s.kg!==""&&s.seconds!==""&&Number.isFinite(Number(s.kg))).map(s=>Number(s.kg));
+      return {date:x.date,value:vals.length?Math.max(...vals):0};
+    }
+    const vals=x.sets.filter(s=>s.kg!==""&&s.reps!==""&&Number.isFinite(Number(s.kg))).map(s=>Number(s.kg));
+    return {date:x.date,value:vals.length?Math.max(...vals):0};
+  }).filter(x=>x.value>0);
+
   const dpr=window.devicePixelRatio||1,rect=c.getBoundingClientRect();
   c.width=rect.width*dpr;c.height=180*dpr;ctx.scale(dpr,dpr);
-  const W=rect.width,H=180,pad={l:38,r:12,t:16,b:28},max=Math.max(1,...data.map(x=>x.kg)),range=max;
+  const W=rect.width,H=180,pad={l:38,r:12,t:16,b:28},max=Math.max(1,...data.map(x=>x.value)),range=max;
   ctx.clearRect(0,0,W,H);ctx.strokeStyle="#2a3a55";ctx.lineWidth=1;
-  for(let j=0;j<=4;j++){const y=pad.t+(H-pad.t-pad.b)*j/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle="#9eacc0";ctx.font="10px system-ui";ctx.textAlign="right";ctx.fillText((max-(range*j/4)).toFixed(max<10?1:0)+" kg",pad.l-6,y+3);}
-  if(!data.length){ctx.fillStyle="#9eacc0";ctx.font="13px system-ui";ctx.textAlign="center";ctx.fillText("Logga några pass för att få en kurva",W/2,H/2);return;}
+  const unit=pull?" reps":" kg";
+  for(let j=0;j<=4;j++){
+    const y=pad.t+(H-pad.t-pad.b)*j/4;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle="#9eacc0";ctx.font="10px system-ui";ctx.textAlign="right";
+    ctx.fillText((max-(range*j/4)).toFixed(pull?0:(max<10?1:0))+unit,pad.l-6,y+3);
+  }
+  if(!data.length){
+    ctx.fillStyle="#9eacc0";ctx.font="13px system-ui";ctx.textAlign="center";
+    ctx.fillText("Logga några pass för att få en kurva",W/2,H/2);return;
+  }
   const x=i=>data.length===1?W/2:pad.l+(W-pad.l-pad.r)*i/(data.length-1),y=v=>pad.t+(H-pad.t-pad.b)*(1-v/range);
-  ctx.strokeStyle="#8ed081";ctx.lineWidth=3;ctx.beginPath();data.forEach((p,i)=>i?ctx.lineTo(x(i),y(p.kg)):ctx.moveTo(x(i),y(p.kg)));ctx.stroke();
-  data.forEach((p,i)=>{ctx.fillStyle="#8ed081";ctx.beginPath();ctx.arc(x(i),y(p.kg),4,0,Math.PI*2);ctx.fill();});
+  ctx.strokeStyle="#8ed081";ctx.lineWidth=3;ctx.beginPath();
+  data.forEach((p,i)=>i?ctx.lineTo(x(i),y(p.value)):ctx.moveTo(x(i),y(p.value)));ctx.stroke();
+  data.forEach((p,i)=>{ctx.fillStyle="#8ed081";ctx.beginPath();ctx.arc(x(i),y(p.value),4,0,Math.PI*2);ctx.fill();});
   ctx.fillStyle="#9eacc0";ctx.font="10px system-ui";ctx.textAlign="center";
   const picks=data.length<=4?data:[data[0],data[Math.floor((data.length-1)/2)],data[data.length-1]];
   picks.forEach(p=>{const i=data.indexOf(p);ctx.fillText(prettyDate(p.date),x(i),H-9);});
 }
+
 function renderHistory(){
  const sessions=history.length,weeks=new Set(history.map(x=>weekKey(x.date))),sorted=[...history].sort((a,b)=>b.date.localeCompare(a.date));
  let streak=0;const active=[...weeks].sort().reverse();
@@ -420,10 +444,30 @@ function renderHistory(){
    workouts.forEach(w=>w.ex.forEach(e=>{
      const id=exerciseId(e[0]);if(seen.has(id))return;seen.add(id);
      const entries=exerciseHistory(e[0]);if(!entries.length)return;
-     const latest=entries[entries.length-1],nums=latest.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>({kg:Number(s.kg),reps:Number(s.reps)}));
-     const best=entries.reduce((acc,x)=>{x.sets.forEach(s=>{if(s.kg!==""&&s.reps!==""&&Number(s.kg)>acc.kg)acc={kg:Number(s.kg),reps:Number(s.reps),date:x.date};});return acc;},{kg:0,reps:0,date:""});
+     const latest=entries[entries.length-1];
+     let latestText="",bestText="",chartTitle="";
+     if(isPullup(e[0])){
+       const sets=latest.sets.filter(s=>s.reps!=="");
+       latestText=sets.length?sets.map(s=>`${s.mode||"Utan assistans"} × ${s.reps}`).join(" · "):"Ingen komplett logg";
+       const best=entries.reduce((acc,x)=>{x.sets.forEach(s=>{const reps=Number(s.reps);if(s.reps!==""&&Number.isFinite(reps)&&reps>acc.reps)acc={reps,date:x.date,mode:s.mode||"Utan assistans"};});return acc;},{reps:0,date:"",mode:""});
+       bestText=best.reps?`<div class="details">Flest reps utan/med assistans: <b>${best.reps} reps</b> <span style="color:var(--muted)">(${prettyDate(best.date)}, ${best.mode})</span></div>`:"";
+       chartTitle="Flest reps per pass";
+     }else if(isCarry(e[0])){
+       const sets=latest.sets.filter(s=>s.kg!==""&&s.seconds!==""&&Number.isFinite(Number(s.seconds)));
+       const oldSets=latest.sets.filter(s=>s.kg!==""&&s.seconds==="");
+       latestText=sets.length?sets.map(s=>`${s.kg} kg × ${s.seconds} sek`).join(" · "):oldSets.length?`${oldSets.map(s=>`${s.kg} kg × ? sek`).join(" · ")} (äldre logg saknar tid)`:"Ingen komplett logg";
+       const best=entries.reduce((acc,x)=>{x.sets.forEach(s=>{const kg=Number(s.kg),sec=Number(s.seconds);if(s.kg!==""&&s.seconds!==""&&Number.isFinite(kg)&&Number.isFinite(sec)&&kg>acc.kg)acc={kg,seconds:sec,date:x.date};});return acc;},{kg:0,seconds:0,date:""});
+       bestText=best.kg?`<div class="details">Tyngsta registrerade set: <b>${best.kg} kg × ${best.seconds} sek</b> <span style="color:var(--muted)">(${prettyDate(best.date)})</span></div>`:"";
+       chartTitle="Tyngsta vikt per pass";
+     }else{
+       const nums=latest.sets.filter(s=>s.kg!==""&&s.reps!=="").map(s=>({kg:Number(s.kg),reps:Number(s.reps)})).filter(s=>Number.isFinite(s.kg)&&Number.isFinite(s.reps));
+       const best=entries.reduce((acc,x)=>{x.sets.forEach(s=>{const kg=Number(s.kg),reps=Number(s.reps);if(s.kg!==""&&s.reps!==""&&Number.isFinite(kg)&&Number.isFinite(reps)&&kg>acc.kg)acc={kg,reps,date:x.date};});return acc;},{kg:0,reps:0,date:""});
+       latestText=nums.length?nums.map(s=>`${s.kg} kg × ${s.reps}`).join(" · "):"Ingen komplett logg";
+       bestText=best.kg?`<div class="details">Tyngsta registrerade set: <b>${best.kg} kg × ${best.reps}</b> <span style="color:var(--muted)">(${prettyDate(best.date)})</span></div>`:"";
+       chartTitle="Tyngsta vikt per pass";
+     }
      const cid="chart-"+encodeURIComponent(id);
-     html+=`<article class="exercise"><div class="name">${e[0]}</div><div class="details">Senast: <b>${nums.length?nums.map(s=>`${s.kg} kg × ${s.reps}`).join(" · "):"Ingen komplett logg"}</b></div>${best.kg?`<div class="details">Tyngsta registrerade set: <b>${best.kg} kg × ${best.reps}</b> <span style="color:var(--muted)">(${prettyDate(best.date)})</span></div>`:""}<div class="chartwrap"><div class="charttitle">Tyngsta vikt per pass</div><canvas id="${cid}"></canvas></div></article>`;
+     html+=`<article class="exercise"><div class="name">${e[0]}</div><div class="details">Senast: <b>${latestText}</b></div>${bestText}<div class="chartwrap"><div class="charttitle">${chartTitle}</div><canvas id="${cid}"></canvas></div></article>`;
    }));
    html+=`<div class="section-title">Veckor</div>`;
    const grouped={};sorted.forEach(x=>(grouped[weekKey(x.date)]??=[]).push(x));
@@ -455,7 +499,7 @@ if ("serviceWorker" in navigator) {
   });
   window.addEventListener("load", async () => {
     try {
-      const reg=await navigator.serviceWorker.register("./sw.js?v=13");
+      const reg=await navigator.serviceWorker.register("./sw.js?v=14");
       if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
       setTimeout(()=>reg.update(),1500);
     } catch(e){}
