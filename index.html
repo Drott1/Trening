@@ -180,9 +180,12 @@ function weekKey(s){
 function exerciseId(name){return name.trim().toLowerCase();}
 function logKey(date,name){return date+"|"+exerciseId(name);}
 function isPullup(name){return name.toLowerCase().includes("pull-up");}
+function isCarry(name){return name.toLowerCase().includes("carry");}
 function getLog(date,name){
   if(logs[logKey(date,name)]) return logs[logKey(date,name)];
-  return {sets:[{kg:"",reps:"",mode:isPullup(name)?"Utan assistans":""},{kg:"",reps:"",mode:isPullup(name)?"Utan assistans":""},{kg:"",reps:"",mode:isPullup(name)?"Utan assistans":""}]};
+  if(isPullup(name)) return {sets:[{kg:"",reps:"",mode:"Utan assistans"},{kg:"",reps:"",mode:"Utan assistans"},{kg:"",reps:"",mode:"Utan assistans"}]};
+  if(isCarry(name)) return {sets:[{kg:"",seconds:""},{kg:"",seconds:""},{kg:"",seconds:""}]};
+  return {sets:[{kg:"",reps:""},{kg:"",reps:""},{kg:"",reps:""}]};
 }
 function saveLog(name,setIndex,field,value){
   const d=dateKey(), k=logKey(d,name), x=getLog(d,name);
@@ -195,11 +198,25 @@ function exerciseHistory(name){
   return Object.entries(logs)
     .filter(([k])=>k.startsWith("20") && k.includes("|") && k.slice(11)===id)
     .map(([k,v])=>({date:k.slice(0,10),sets:v.sets||[]}))
-    .filter(x=>x.sets.some(s=>s.reps!==""))
+    .filter(x=>x.sets.some(s=>s.reps!=="" || s.seconds!==""))
     .sort((a,b)=>a.date.localeCompare(b.date));
 }
 function recommendation(name){
   const entries=exerciseHistory(name);
+  if(isCarry(name)){
+    if(!entries.length) return "Första gången: välj en vikt där du kan gå stabilt i cirka 40–60 sekunder.";
+    const last=entries[entries.length-1];
+    const sets=(last.sets||[]).filter(s=>s.seconds!=="" && s.kg!=="");
+    if(!sets.length) return "Fyll i vikt och sekunder från förra passet för att få ett förslag.";
+    const maxKg=Math.max(...sets.map(s=>Number(s.kg)));
+    const avgSec=sets.reduce((a,s)=>a+Number(s.seconds),0)/sets.length;
+    if(avgSec>=60){
+      const next=Math.round((maxKg+2)*2)/2;
+      return `Förslag idag: <b>${next} kg</b> och sikta på <b>40–60 sek</b>. Du klarade ${Math.round(avgSec)} sek i snitt senast.`;
+    }
+    if(avgSec>=40) return `Förslag idag: behåll <b>${maxKg} kg</b> och försök komma närmare 60 sek per set.`;
+    return `Förslag idag: behåll <b>${maxKg} kg</b> och försök bygga upp tiden mot 40 sek.`;
+  }
   if(isPullup(name)){
     if(!entries.length) return "Första gången: registrera varje set som <b>utan assistans</b> eller <b>med band</b>. Försök bygga reps utan assistans över tid.";
     const last=entries[entries.length-1];
@@ -236,6 +253,10 @@ function previousResult(name){
   if(isPullup(name)){
     return "Senast: "+s.map((x,i)=>`${x.mode||"Utan assistans"} × ${x.reps}`).join(" · ");
   }
+  if(isCarry(name)){
+    const carried=e[e.length-1].sets.filter(x=>x.kg!==""&&x.seconds!=="");
+    return carried.length ? "Senast: "+carried.map(x=>`${x.kg} kg × ${x.seconds} sek`).join(" · ") : "";
+  }
   const weighted=s.filter(x=>x.kg!=="");
   return weighted.length ? "Senast: "+weighted.map(x=>`${x.kg} kg × ${x.reps}`).join(" · ") : "";
 }
@@ -260,12 +281,12 @@ function render(){
  const w=workouts[day];
  let done=w.ex.filter((_,i)=>checks[key(i)]).length;
  let completed=history.some(x=>x.date===dateKey()&&x.day===day);
- let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">Appen använder enkel dubbel progression: bygg först reps inom 8–12, öka sedan vikten och börja om runt 8 reps.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
+ let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">För de flesta styrkeövningar: bygg först reps inom 8–12 och öka sedan vikten. Pull-ups och carries har egen progression.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
  html+=`<div class="section-title">Passet</div>`;
  w.ex.forEach((e,i)=>{
    const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,3), prev=previousResult(e[0]);
-   const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.reps!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
-   html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.map((s,j)=>isPullup(e[0])?`<div class="setrow"><span>Set ${j+1}</span><select onchange="saveLog(${JSON.stringify(e[0])},${j},'mode',this.value)"><option ${(!s.mode||s.mode==="Utan assistans")?"selected":""}>Utan assistans</option><option ${s.mode==="Med band"?"selected":""}>Med band</option><option ${s.mode==="Assisterad maskin"?"selected":""}>Assisterad maskin</option></select><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`:`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
+   const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.reps!=="" || s.seconds!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
+   html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.map((s,j)=>isPullup(e[0])?`<div class="setrow"><span>Set ${j+1}</span><select onchange="saveLog(${JSON.stringify(e[0])},${j},'mode',this.value)"><option ${(!s.mode||s.mode==="Utan assistans")?"selected":""}>Utan assistans</option><option ${s.mode==="Med band"?"selected":""}>Med band</option><option ${s.mode==="Assisterad maskin"?"selected":""}>Assisterad maskin</option></select><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`:isCarry(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="1" step="1" placeholder="sek" value="${s.seconds||""}" onchange="saveLog(${JSON.stringify(e[0])},${j},'seconds',this.value)"></div>`:`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
  });
  document.getElementById("content").innerHTML=html;
 }
@@ -290,6 +311,12 @@ function toggle(i,v){
         if(select)x.sets[j].mode=select.value;
         if(input)x.sets[j].reps=input.value;
       });
+    }else if(isCarry(exerciseName)){
+      const inputs=article.querySelectorAll(".sets input");
+      for(let j=0;j<3;j++){
+        x.sets[j].kg=inputs[j*2]?.value ?? x.sets[j].kg;
+        x.sets[j].seconds=inputs[j*2+1]?.value ?? x.sets[j].seconds;
+      }
     }else{
       const inputs=article.querySelectorAll(".sets input");
       for(let j=0;j<3;j++){
@@ -428,7 +455,7 @@ if ("serviceWorker" in navigator) {
   });
   window.addEventListener("load", async () => {
     try {
-      const reg=await navigator.serviceWorker.register("./sw.js?v=12");
+      const reg=await navigator.serviceWorker.register("./sw.js?v=13");
       if(reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
       setTimeout(()=>reg.update(),1500);
     } catch(e){}
