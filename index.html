@@ -70,35 +70,35 @@ canvas{width:100%;height:180px;display:block}
     <div><small>Vila</small><strong id="time">01:00</strong></div>
     <div style="display:flex;gap:7px"><button onclick="startTimer()">Start</button><button onclick="stopTimer()">Stopp</button></div>
   </div>
-  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. · v18 Exportera gärna en backup före större uppdateringar.</div>
+  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. · v19 Exportera gärna en backup före större uppdateringar.</div>
 </div>
 
 <script>
 const workouts = [
  {name:"Dag 1",title:"Squat + pull + carry",desc:"Helkropp med knäböj, drag, höft och grepp.",ex:[
-  ["Hantel thruster","Squat + push","3 × 8–12","Gå ner i en kontrollerad knäböj och använd kraften från benen för att pressa hantlarna över huvudet.","https://www.crossfit.com/essentials/the-dumbbell-thruster"],
-  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Gör kontrollerade reps. Använd band eller assisterad maskin om du behöver.","https://www.nasm.org/resource-center/exercise-library/pull-up"],
+  ["Hantel thruster","Squat + push","3 × 8–12","Gå ner i en kontrollerad knäböj och använd kraften från benen för att pressa hantlarna över huvudet.","https://www.youtube.com/watch?v=6N3PivD0t3E"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Gör kontrollerade reps. Använd band eller assisterad maskin om du behöver.","https://www.youtube.com/watch?v=eGo4IYlbE5g"],
   ["Rumänska marklyft","Hinge","3 × 8–12","Mjuk knävinkel, skjut höften bakåt och håll hantlarna nära benen.","https://www.youtube.com/watch?v=aa57T45iFSE"],
-  ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/sida","Stöd ena handen och dra hanteln mot höften. Håll ryggen stabil.","https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"],
-  ["Farmer's carry","Carry","2 × 40–60 sek","Tungt men kontrollerat. Gå stolt och håll bålen stabil.","https://www.acefitness.org/resources/everyone/exercise-library/"]
+  ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/sida","Stöd ena handen och dra hanteln mot höften. Håll ryggen stabil.","https://www.youtube.com/watch?v=6KNmHxw-SpE"],
+  ["Farmer's carry","Carry","2 × 40–60 sek","Tungt men kontrollerat. Gå stolt och håll bålen stabil.","https://www.youtube.com/watch?v=Kh0871u60z0"]
  ]},
  {name:"Dag 2",title:"Clean + press + ben",desc:"Explosiv höft, ensidigt benarbete, press och bål.",ex:[
-  ["Hantel hang clean","Power","3 × 6–8","Starta med hantlarna vid låren. Explodera med höften och fånga hantlarna vid axlarna.","https://www.crossfit.com/essentials/the-dumbbell-hang-clean"],
-  ["Bulgarian split squat","Squat","2–3 × 8–10/ben","Bakre fot på stol eller soffa. Sänk dig kontrollerat och tryck upp med främre benet.","https://www.youtube.com/watch?v=hbw7hdyOpq0"],
-  ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg. Sänk armbågarna kontrollerat tills överarmarna når golvet.","https://library.theprehabguys.com/vimeo-video/floor-press-with-dumbbell/"],
-  ["Hantelsving","Hinge + power","3 × 12–20","Driv hanteln med höften, inte med armarna. Håll bålen spänd.","https://www.exerciselibrary.com/exercise/dumbbell-swing/"],
-  ["Russian twist","Core","2 × 10–15/sida","Rotera kontrollerat från bålen och håll rörelsen stabil.","https://www.nasm.org/resource-center/exercise-library/russian-twist"]
+  ["Hantel hang clean","Power","3 × 6–8","Starta med hantlarna vid låren. Explodera med höften och fånga hantlarna vid axlarna.","https://www.youtube.com/watch?v=hFXPxXkYr_o"],
+  ["Bulgarian split squat","Squat","2–3 × 8–10/ben","Bakre fot på stol eller soffa. Sänk dig kontrollerat och tryck upp med främre benet.","https://www.youtube.com/watch?v=mroWnR22q54"],
+  ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg. Sänk armbågarna kontrollerat tills överarmarna når golvet.","https://www.youtube.com/watch?v=T0Y3OBF1bNI"],
+  ["Hantelsving","Hinge + power","3 × 12–20","Driv hanteln med höften, inte med armarna. Håll bålen spänd.","https://www.youtube.com/watch?v=cfYt7Q21w_0"],
+  ["Russian twist","Core","2 × 10–15/sida","Rotera kontrollerat från bålen och håll rörelsen stabil.","https://www.youtube.com/watch?v=LlccOWys8IU"]
  ]},
  {name:"Dag 3",title:"Lunge + push + pull",desc:"Ensidig benstyrka, press, drag och tungt bärande.",ex:[
-  ["Bakåtutfall → knälyft","Lunge + balance","3 × 8–10/ben","Ta ett steg bakåt, pressa upp och avsluta med ett kontrollerat knälyft.","https://www.nasm.org/resource-center/blog/squat-alternatives"],
-  ["Hantel push press","Push · power","3 × 8–12","Böj lätt i knäna och använd benen för att hjälpa hantlarna upp över huvudet.","https://www.crossfit.com/essentials/the-dumbbell-push-press"],
+  ["Bakåtutfall → knälyft","Lunge + balance","3 × 8–10/ben","Ta ett steg bakåt, pressa upp och avsluta med ett kontrollerat knälyft.","https://www.youtube.com/watch?v=lKhZvT_NkOs"],
+  ["Hantel push press","Push · power","3 × 8–12","Böj lätt i knäna och använd benen för att hjälpa hantlarna upp över huvudet.","https://www.youtube.com/watch?v=vuaYVK8xyqo"],
   ["Enarms hantelrodd","Pull · horisontellt","3 × 8–12/sida","Dra hanteln mot höften och håll skuldran kontrollerad.","https://www.acefitness.org/resources/everyone/exercise-library/126/single-arm-row/"],
-  ["Hantel snatch","Power · unilateral","3 × 6–8/sida","Explosivt från golvet till över huvudet. Låt höft och ben skapa kraften och håll vikten nära kroppen.","https://www.crossfit.com/essentials/the-dumbbell-power-snatch"],
-  ["Suitcase carry","Carry","2 × 40–60 sek/sida","Bär en tung hantel i ena handen. Gå utan att luta kroppen åt sidan.","https://www.acefitness.org/resources/everyone/exercise-library/358/suitcase-carry/"]
+  ["Hantel snatch","Power · unilateral","3 × 6–8/sida","Explosivt från golvet till över huvudet. Låt höft och ben skapa kraften och håll vikten nära kroppen.","https://www.youtube.com/watch?v=gm4ln6PO4rc"],
+  ["Suitcase carry","Carry","2 × 40–60 sek/sida","Bär en tung hantel i ena handen. Gå utan att luta kroppen åt sidan.","https://www.youtube.com/watch?v=jKnLY_MXIoA"]
  ]},
  {name:"Dag 4",title:"Helkropp + kondition",desc:"Helkropp med explosiv styrka och ett kort AMRAP-finisher.",ex:[
-  ["Devil's press","Helkropp + power","3 × 6–10","Burpee med hantlar följt av en flytande press över huvudet. Håll tempot kontrollerat.","https://barbend.com/devils-press/"],
-  ["Goblet squat","Squat","3 × 8–12","Håll en hantel framför bröstet. Sitt ner kontrollerat och res dig genom hela foten.","https://www.nasm.org/resource-center/exercise-library/goblet-squat"],
+  ["Devil's press","Helkropp + power","3 × 6–10","Burpee med hantlar följt av en flytande press över huvudet. Håll tempot kontrollerat.","https://www.youtube.com/watch?v=AYqBIKnjm1I"],
+  ["Goblet squat","Squat","3 × 8–12","Håll en hantel framför bröstet. Sitt ner kontrollerat och res dig genom hela foten.","https://www.youtube.com/watch?v=nfX7IFK9UNI"],
   ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Kontrollerade reps. Använd band eller assisterad maskin om du behöver.","https://www.nasm.org/resource-center/exercise-library/pull-up"],
   ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg och pressa hantlarna kontrollerat från golvet.","https://library.theprehabguys.com/vimeo-video/floor-press-with-dumbbell/"],
   ["AMRAP 8 min","AMRAP","8 min","Så många varv som möjligt på 8 minuter: 8 hantelsvingar, 8 walking lunges och 6 burpees. Logga rundor + extra reps efteråt.","https://www.crossfit.com/faq/exercises"]
@@ -395,7 +395,7 @@ function render(){
        <div class="amraptimer"><strong id="amrapTime">${formatAmrapTime(amrapRemaining)}</strong><div class="amrapcontrols"><button onclick="startAmrap()">${amrapRunning?"Kör…":"Start / fortsätt"}</button><button onclick="pauseAmrap()">Paus</button><button onclick="stopAmrap()">Stopp</button></div><div id="amrapStatus" class="hint">${amrapRunning?"Kör!":"Redo när du är."}</div></div>
        <div class="amrapweights"><label>Hantelsving<input type="number" min="0" step="0.5" value="${a.exercises[0].weight||""}" onchange="saveAmrapWeight(0,this.value)" placeholder="kg"></label><label>Walking lunges<input type="number" min="0" step="0.5" value="${a.exercises[1].weight||""}" onchange="saveAmrapWeight(1,this.value)" placeholder="kg/hantel"></label><label>Burpees<input value="Kroppsvikt" disabled></label></div>
        <div class="amrapresult"><label>Rundor<input type="number" min="0" step="1" value="${a.rounds||""}" onchange="saveAmrapField('rounds',this.value)" placeholder="0"></label><label>Extra reps<input type="number" min="0" max="22" step="1" value="${a.extra||""}" onchange="saveAmrapField('extra',this.value)" placeholder="0"></label></div>
-       <div class="actions"><span class="link">8 hantelsvingar · 8 walking lunges · 6 burpees</span> · <a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Övningsguide ↗</a></div></div></div></article>`;
+       <div class="actions"><span class="link">8 hantelsvingar · <a class="link" href="https://www.youtube.com/watch?v=cfYt7Q21w_0" target="_blank" rel="noopener">sving ↗</a> · 8 walking lunges · <a class="link" href="https://www.youtube.com/watch?v=vYfp2t4XgqQ" target="_blank" rel="noopener">lunge ↗</a> · 6 burpees · <a class="link" href="https://www.youtube.com/watch?v=dZgVxmf6jkA" target="_blank" rel="noopener">burpee ↗</a></span></div></div></div></article>`;
    }else{
      const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,setCount(e[0],e[2])), prev=previousResult(e[0]);
      const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.reps!=="" || s.seconds!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
