@@ -151,9 +151,24 @@ if(workoutMode==="gym"){
   checks=migrated;
 }
 let history = JSON.parse(localStorage.getItem("history") || "[]");
+function dedupeHistory(){
+  const seen=new Set();
+  const clean=[];
+  for(const x of history){
+    const mode=x.mode||"gym";
+    const key=`${x.date}|${x.day}|${mode}`;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    clean.push({...x,mode});
+  }
+  history=clean;
+  localStorage.setItem("history",JSON.stringify(history));
+}
+dedupeHistory();
+
 let logs = JSON.parse(localStorage.getItem("logs") || "{}");
 let view = localStorage.getItem("view") || "workout";
-const DATA_VERSION = 4;
+const DATA_VERSION = 5;
 
 /*
   Data format:
@@ -512,7 +527,7 @@ function render(){
 }
 function completeWorkout(){
  const today=dateKey(), w=activeWorkout();
- if(!history.some(x=>x.date===today&&x.day===day&&x.mode===workoutMode)){
+ if(!history.some(x=>x.date===today&&x.day===day&&(x.mode||"gym")===workoutMode)){
    history.push({date:today,day:day,name:w.name,title:w.title,mode:workoutMode});
    history.sort((a,b)=>a.date.localeCompare(b.date));
  }

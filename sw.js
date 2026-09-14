@@ -1,4 +1,4 @@
-const CACHE="min-traning-v24";
+const CACHE="min-traning-v26";
 const APP_SHELL=["./","./index.html","./manifest.json","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install", event => {
