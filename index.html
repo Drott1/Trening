@@ -153,7 +153,7 @@ if(workoutMode==="gym"){
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 let logs = JSON.parse(localStorage.getItem("logs") || "{}");
 let view = localStorage.getItem("view") || "workout";
-const DATA_VERSION = 3;
+const DATA_VERSION = 4;
 
 /*
   Data format:
@@ -234,11 +234,16 @@ function weekKey(s){
   return x.getUTCFullYear()+"-W"+String(week).padStart(2,"0");
 }
 function exerciseId(name){return name.trim().toLowerCase();}
-function logKey(date,name,workoutDay=day){return date+"|"+workoutDay+"|"+exerciseId(name);}
+function logKey(date,name,workoutDay=day,mode=workoutMode){return date+"|"+mode+"|"+workoutDay+"|"+exerciseId(name);}
+function legacyLogKey(date,name,workoutDay=day){return date+"|"+workoutDay+"|"+exerciseId(name);}
 function isPullup(name){return name.toLowerCase().includes("pull-up");}
 function isCarry(name){return name.toLowerCase().includes("carry");}
-function isAmrap(name){return name==="AMRAP 8 min";}
-function amrapKey(date=dateKey(), workoutDay=3){return date+"|"+workoutDay+"|amrap";}
+function isAmrap(name){return name==="AMRAP 8 min";}function isHomeTimed(name){return workoutMode==="home" && name==="Pilates core";}
+function isHomeBodyweight(name){
+  if(workoutMode!=="home") return false;
+  return ["Air squat","Push-ups","Bulgarian split squat","Bakåtutfall → knälyft","Ring rows","Devil's press utan hantlar"].includes(name);
+}
+function amrapKey(date=dateKey(), workoutDay=3, mode=workoutMode){return date+"|"+mode+"|"+workoutDay+"|amrap";}
 function getAmrapLog(date=dateKey(), workoutDay=3){
   const k=amrapKey(date,workoutDay);
   return logs[k] || {
@@ -260,12 +265,20 @@ function saveAmrapWeight(index,value){
 }
 function amrapHistory(){
   return Object.entries(logs)
-    .filter(([k,v])=>k.split("|")[2]==="amrap" && v && (v.rounds!=="" || v.extra!==""))
-    .map(([k,v])=>({date:k.split("|")[0],day:Number(k.split("|")[1]),...v}))
+    .filter(([k,v])=>{
+      const p=k.split("|");
+      return v && (p.length===4 ? p[3]==="amrap" : p[2]==="amrap") && (v.rounds!=="" || v.extra!=="");
+    })
+    .map(([k,v])=>{
+      const p=k.split("|");
+      return p.length===4
+        ? {date:p[0],mode:p[1],day:Number(p[2]),...v}
+        : {date:p[0],mode:"gym",day:Number(p[1]),...v};
+    })
     .sort((a,b)=>a.date.localeCompare(b.date)||a.day-b.day);
 }
 function lastAmrapResult(){
-  const h=amrapHistory();
+  const h=amrapHistory().filter(x=>x.mode===workoutMode);
   return h.length ? h[h.length-1] : null;
 }
 function amrapResultText(x){
@@ -342,8 +355,14 @@ function setCount(name, prescription){
   return /^2 ×/.test(prescription) ? 2 : 3;
 }
 function getLog(date,name){
-  if(logs[logKey(date,name)]) return logs[logKey(date,name)];
+  const k=logKey(date,name);
+  if(logs[k]) return logs[k];
+  // Read older v15-v22 gym records so an app update does not lose previous logs.
+  const legacy=logs[legacyLogKey(date,name)];
+  if(legacy && workoutMode==="gym") return legacy;
   if(isPullup(name)) return {sets:[{kg:"",reps:"",mode:"Utan assistans"},{kg:"",reps:"",mode:"Utan assistans"},{kg:"",reps:"",mode:"Utan assistans"}]};
+  if(isHomeTimed(name)) return {sets:[{seconds:""},{seconds:""},{seconds:""}]};
+  if(isHomeBodyweight(name)) return {sets:[{reps:""},{reps:""},{reps:""}]};
   if(isCarry(name)) return {sets:[{kg:"",seconds:""},{kg:"",seconds:""},{kg:"",seconds:""}]};
   return {sets:[{kg:"",reps:""},{kg:"",reps:""},{kg:"",reps:""}]};
 }
@@ -356,13 +375,35 @@ function saveLog(name,setIndex,field,value){
 function exerciseHistory(name){
   const id=exerciseId(name);
   return Object.entries(logs)
-    .filter(([k])=>{
+    .filter(([k,v])=>{
       const p=k.split("|");
-      return p[0]?.startsWith("20") && p.length>=3 && p.slice(2).join("|")===id;
+      if(p.length===4) return p[0]?.startsWith("20") && p[3]===id;
+      return p.length>=3 && p[0]?.startsWith("20") && p.slice(2).join("|")===id;
     })
-    .map(([k,v])=>({date:k.split("|")[0],day:Number(k.split("|")[1]),sets:v.sets||[]}))
+    .map(([k,v])=>{
+      const p=k.split("|");
+      return p.length===4
+        ? {date:p[0],mode:p[1],day:Number(p[2]),sets:v.sets||[]}
+        : {date:p[0],mode:"gym",day:Number(p[1]),sets:v.sets||[]};
+    })
     .filter(x=>x.sets.some(s=>s.reps!=="" || s.seconds!==""))
     .sort((a,b)=>a.date.localeCompare(b.date)||a.day-b.day);
+}
+
+function homeRecommendation(name){
+  const entries=exerciseHistory(name).filter(x=>x.mode==="home");
+  if(isHomeTimed(name)){
+    if(!entries.length) return "Välj 2–3 kontrollerade Pilates-bålövningar och börja med cirka 30–60 sekunder per övning.";
+    return "Förslag idag: håll samma övningar och försök slå förra passets tid med bibehållen kontroll.";
+  }
+  if(!entries.length) return "Första gången: välj en variant där du kan göra alla set med bra teknik. Öka reps eller gör varianten svårare över tid.";
+  const last=entries[entries.length-1];
+  const vals=(last.sets||[]).filter(s=>s.reps!=="").map(s=>Number(s.reps)).filter(Number.isFinite);
+  if(!vals.length) return "Fyll i reps från förra passet för att få ett förslag.";
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  if(avg>=20) return "Förslag idag: gör varianten svårare eller lägg in långsammare reps. Behåll god teknik.";
+  if(avg>=12) return "Förslag idag: försök slå förra passets reps innan du gör övningen svårare.";
+  return "Förslag idag: behåll samma variant och bygg gradvis fler reps.";
 }
 function recommendation(name){
   const entries=exerciseHistory(name);
@@ -448,7 +489,7 @@ function render(){
  const w=activeWorkout();
  let done=w.ex.filter((_,i)=>checks[key(i)]).length;
  let completed=history.some(x=>x.date===dateKey()&&x.day===day&&x.mode===workoutMode);
- let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">För styrkeövningar: bygg först reps inom angivet spann och öka sedan vikten. Pull-ups, carries och AMRAP har egen progression.</div><div class="mode-switch"><button class="${workoutMode==="gym"?"active":""}" onclick="setWorkoutMode('gym')">🏋️ Gym</button><button class="${workoutMode==="home"?"active":""}" onclick="setWorkoutMode('home')">🏠 Hemma</button></div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
+ let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">${workoutMode==="home"?"🏠 Stång + ringar + kroppsvikt":"🏋️ Hantlar"}</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">Gym: bygg reps inom angivet spann och öka sedan vikten. Hemma: öka reps, tid eller svårighetsgrad. Pull-ups och AMRAP har egen progression.</div><div class="mode-switch"><button class="${workoutMode==="gym"?"active":""}" onclick="setWorkoutMode('gym')">🏋️ Gym</button><button class="${workoutMode==="home"?"active":""}" onclick="setWorkoutMode('home')">🏠 Hemma</button></div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
  html+=`<div class="section-title">Passet</div>`;
  w.ex.forEach((e,i)=>{
    if(isAmrap(e[0])){
@@ -464,7 +505,7 @@ function render(){
    }else{
      const lg=getLog(dateKey(),e[0]), sets=lg.sets.slice(0,setCount(e[0],e[2])), prev=previousResult(e[0]);
      const savedNote=checks[key(i)] ? `<div class="prevresult">✓ Övningen är markerad som klar${sets.some(s=>s.reps!=="" || s.seconds!=="") ? " och dina siffror är sparade." : ". Du kan fortfarande fylla i vikt och reps."}</div>` : "";
-     html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.map((s,j)=>isPullup(e[0])?`<div class="setrow"><span>Set ${j+1}</span><select onchange="saveLog(${JSON.stringify(e[0])},${j},'mode',this.value)"><option ${(!s.mode||s.mode==="Utan assistans")?"selected":""}>Utan assistans</option><option ${s.mode==="Med band"?"selected":""}>Med band</option><option ${s.mode==="Assisterad maskin"?"selected":""}>Assisterad maskin</option></select><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`:isCarry(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="1" step="1" placeholder="sek" value="${s.seconds||""}" onchange="saveLog(${JSON.stringify(e[0])},${j},'seconds',this.value)"></div>`:`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
+     html+=`<article class="exercise"><div class="row"><input class="check" type="checkbox" ${checks[key(i)]?"checked":""} onchange="toggle(${i},this.checked)"><div style="width:100%"><div class="pattern">${e[1]}</div><div class="name">${e[0]}</div><div class="details"><b>${e[2]}</b> · ${e[3]}</div><div class="recommend"><b>💡 Nästa pass</b><br>${recommendation(e[0])}</div>${prev?`<div class="prevresult">${prev}</div>`:""}${savedNote}<div class="sets">${sets.map((s,j)=>isPullup(e[0])?`<div class="setrow"><span>Set ${j+1}</span><select onchange="saveLog(${JSON.stringify(e[0])},${j},'mode',this.value)"><option ${(!s.mode||s.mode==="Utan assistans")?"selected":""}>Utan assistans</option><option ${s.mode==="Med band"?"selected":""}>Med band</option><option ${s.mode==="Assisterad maskin"?"selected":""}>Assisterad maskin</option></select><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`:isHomeTimed(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="1" step="1" placeholder="sek" value="${s.seconds||""}" onchange="saveLog(${JSON.stringify(e[0])},${j},'seconds',this.value)"><span class="unit">sek</span></div>`:isHomeBodyweight(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"><span class="unit">reps</span></div>`:isCarry(e[0])?`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="1" step="1" placeholder="sek" value="${s.seconds||""}" onchange="saveLog(${JSON.stringify(e[0])},${j},'seconds',this.value)"></div>`:`<div class="setrow"><span>Set ${j+1}</span><input type="number" min="0" step="0.5" placeholder="kg" value="${s.kg}" onchange="saveLog(${JSON.stringify(e[0])},${j},'kg',this.value)"><input type="number" min="0" step="1" placeholder="reps" value="${s.reps}" onchange="saveLog(${JSON.stringify(e[0])},${j},'reps',this.value)"></div>`).join("")}</div><div class="actions"><a class="link" href="${e[4]}" target="_blank" rel="noopener">▶ Se kort video ↗</a></div></div></div></article>`;
    }
  });
  document.getElementById("content").innerHTML=html;
@@ -498,6 +539,12 @@ function toggle(i,v){
         if(select)x.sets[j].mode=select.value;
         if(input)x.sets[j].reps=input.value;
       });
+    }else if(isHomeTimed(exerciseName)){
+      const inputs=article.querySelectorAll(".sets input");
+      for(let j=0;j<n;j++) x.sets[j].seconds=inputs[j]?.value ?? x.sets[j].seconds;
+    }else if(isHomeBodyweight(exerciseName)){
+      const inputs=article.querySelectorAll(".sets input");
+      for(let j=0;j<n;j++) x.sets[j].reps=inputs[j]?.value ?? x.sets[j].reps;
     }else if(isCarry(exerciseName)){
       const inputs=article.querySelectorAll(".sets input");
       for(let j=0;j<n;j++){
@@ -523,7 +570,7 @@ function exportData(){
     app:"Min träning",
     dataVersion:DATA_VERSION,
     exportedAt:new Date().toISOString(),
-    day,checks,history,logs
+    day,checks,checkWeek:weekKey(),history,logs
   };
   const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
@@ -548,9 +595,14 @@ function importData(file){
       }
       day=Number(data.day||0);
       checks=data.checks||{};
-      const importedChecks={};
-      Object.entries(checks).forEach(([k,v])=>{ importedChecks[k.includes("-")&&k.startsWith("gym-")?k:"gym-"+k]=v; });
-      checks=importedChecks;
+      const importedWeek=data.checkWeek||"";
+      if(importedWeek===weekKey()){
+        const importedChecks={};
+        Object.entries(checks).forEach(([k,v])=>{ importedChecks[k.includes("-")?k:"gym-"+k]=v; });
+        checks=importedChecks;
+      }else{
+        checks={};
+      }
       history=data.history||[];
       logs=data.logs||{};
       localStorage.setItem("dataVersion",String(DATA_VERSION));
