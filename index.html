@@ -421,6 +421,7 @@ function homeRecommendation(name){
   return "Förslag idag: behåll samma variant och bygg gradvis fler reps.";
 }
 function recommendation(name){
+  if(workoutMode==="home") return homeRecommendation(name);
   const entries=exerciseHistory(name);
   if(isCarry(name)){
     if(!entries.length) return "Första gången: välj en vikt där du kan gå stabilt i cirka 40–60 sekunder.";
@@ -464,8 +465,8 @@ function recommendation(name){
   const down=Math.max(1,Math.round((maxKg-1)*2)/2);
   return `Förslag idag: behåll <b>${maxKg} kg</b> om tekniken känns bra. Om du inte når 8 reps, prova <b>${down} kg</b>.`;
 }
-function previousResult(name){
-  const e=exerciseHistory(name);
+function previousResult(name,mode=workoutMode){
+  const e=exerciseHistory(name).filter(x=>x.mode===mode);
   if(!e.length)return "";
   const s=e[e.length-1].sets.filter(x=>x.reps!=="");
   if(!s.length)return "";
@@ -478,6 +479,10 @@ function previousResult(name){
     if(carried.length) return "Senast: "+carried.map(x=>`${x.kg} kg × ${x.seconds} sek`).join(" · ");
     if(legacy.length) return "Senast: äldre logg utan registrerad tid. Fyll i sekunder på nästa pass.";
     return "";
+  }
+  if(workoutMode==="home"){
+    const reps=s.filter(x=>x.reps!=="");
+    return reps.length ? "Senast: "+reps.map(x=>`${x.reps} reps`).join(" · ") : "";
   }
   const weighted=s.filter(x=>x.kg!=="");
   return weighted.length ? "Senast: "+weighted.map(x=>`${x.kg} kg × ${x.reps}`).join(" · ") : "";
