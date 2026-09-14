@@ -53,6 +53,10 @@ canvas{width:100%;height:180px;display:block}
 .amrapweights input,.amrapresult input{width:100%;box-sizing:border-box;margin-top:4px}
 .check{display:flex;align-items:center;gap:8px;margin-top:14px;font-weight:700}
 @media(max-width:430px){.amrapweights{grid-template-columns:1fr 1fr}.amrapweights label:last-child{grid-column:1/-1}}
+
+.mode-switch{display:flex;gap:8px;margin-top:14px}
+.mode-switch button{flex:1}
+.mode-switch button.active{background:var(--accent);color:#0b1725;border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -70,7 +74,7 @@ canvas{width:100%;height:180px;display:block}
     <div><small>Vila</small><strong id="time">01:00</strong></div>
     <div style="display:flex;gap:7px"><button onclick="startTimer()">Start</button><button onclick="stopTimer()">Stopp</button></div>
   </div>
-  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. · v21 Exportera gärna en backup före större uppdateringar.</div>
+  <div class="footer">Tekniklänkar öppnas i en ny flik. Data sparas lokalt på enheten. · v22 Exportera gärna en backup före större uppdateringar.</div>
 </div>
 
 <script>
@@ -103,10 +107,49 @@ const workouts = [
   ["Hantelpress på golv","Push · horisontellt","3 × 8–12","Ligg på rygg och pressa hantlarna kontrollerat från golvet.","https://library.theprehabguys.com/vimeo-video/floor-press-with-dumbbell/"],
   ["AMRAP 8 min","AMRAP","8 min","Så många varv som möjligt på 8 minuter: 8 hantelsvingar, 8 walking lunges och 6 burpees. Logga rundor + extra reps efteråt.","https://www.crossfit.com/faq/exercises"]
  ]}
+
+];
+
+const homeWorkouts = [
+ {name:"Dag 1",title:"Hemma · squat + pull + push",desc:"Enkelt helkroppspass med stång, ringar och kroppsvikt.",ex:[
+  ["Air squat","Squat","3 × 15–25","Sätt dig kontrollerat och res dig genom hela foten. Gör rörelsen långsammare när du behöver mer motstånd.","https://www.youtube.com/watch?v=aclHkVaku9U"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Använd stången hemma. Kör assisterat med band om du behöver.","https://www.youtube.com/watch?v=eGo4IYlbE5g"],
+  ["Ring rows","Pull · horisontellt","3 × 8–15","Luta kroppen lagom mycket och dra bröstet mot ringarna. Håll kroppen rak.","https://www.youtube.com/watch?v=8jP2L8q6xWQ"],
+  ["Push-ups","Push · horisontellt","3 × 8–20","Spänn bålen och sänk bröstet kontrollerat. Anpassa genom att höja händerna vid behov.","https://www.youtube.com/watch?v=IODxDxX7oi4"],
+  ["Pilates core","Core","2–3 × 30–60 sek","Välj 2–3 kontrollerade Pilates-bålövningar, till exempel dead bug, toe taps eller hollow hold.","https://www.youtube.com/watch?v=K56Z12XNQ5c"]
+ ]},
+ {name:"Dag 2",title:"Hemma · ben + push + pull",desc:"Ensidigt benarbete, press, drag och bål utan gym.",ex:[
+  ["Bulgarian split squat","Squat","3 × 8–15/ben","Bakre fot på stol eller soffa. Sänk dig kontrollerat och tryck upp med främre benet.","https://www.youtube.com/watch?v=2C-uNgKwPLE"],
+  ["Push-ups","Push · horisontellt","3 × 8–20","Håll kroppen rak och armbågarna kontrollerade. Gör dem svårare genom att höja fötterna.","https://www.youtube.com/watch?v=IODxDxX7oi4"],
+  ["Bakåtutfall → knälyft","Lunge + balance","3 × 8–12/ben","Stega bakåt, pressa upp och avsluta med ett kontrollerat knälyft.","https://www.youtube.com/watch?v=lKhZvT_NkOs"],
+  ["Ring rows","Pull · horisontellt","3 × 8–15","Dra bröstet mot ringarna och håll kroppen stabil.","https://www.youtube.com/watch?v=8jP2L8q6xWQ"],
+  ["Pilates core","Core","2–3 × 30–60 sek","Välj 2–3 kontrollerade Pilates-bålövningar och prioritera kvalitet framför tempo.","https://www.youtube.com/watch?v=K56Z12XNQ5c"]
+ ]},
+ {name:"Dag 3",title:"Hemma · pull + push + squat",desc:"Ett lite enklare pass som är lätt att få gjort även när gymmet inte hinns med.",ex:[
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Kontrollerade reps från häng till bröstet högt mot stången. Använd band vid behov.","https://www.youtube.com/watch?v=eGo4IYlbE5g"],
+  ["Push-ups","Push · horisontellt","3 × 8–20","Sänk dig kontrollerat och pressa upp med hela överkroppen.","https://www.youtube.com/watch?v=IODxDxX7oi4"],
+  ["Air squat","Squat","3 × 15–25","Kontrollerade repetitioner. Lägg in en paus i botten om kroppsvikt blir för lätt.","https://www.youtube.com/watch?v=aclHkVaku9U"],
+  ["Ring rows","Pull · horisontellt","3 × 8–15","Gör kroppen mer horisontell för att öka belastningen.","https://www.youtube.com/watch?v=8jP2L8q6xWQ"],
+  ["Pilates core","Core","2–3 × 30–60 sek","Välj 2–3 Pilates-bålövningar och håll rörelsen långsam och kontrollerad.","https://www.youtube.com/watch?v=K56Z12XNQ5c"]
+ ]},
+ {name:"Dag 4",title:"Hemma · helkropp + AMRAP",desc:"Kort och konditionsbetonat pass med bara stång, ringar och kroppsvikt.",ex:[
+  ["Devil's press utan hantlar","Helkropp","3 × 8–12","Gör en burpee och res dig explosivt med armarna över huvudet. Håll tempot kontrollerat.","https://www.youtube.com/watch?v=AYqBIKnjm1I"],
+  ["Bulgarian split squat","Squat","3 × 8–15/ben","Kontrollerat och djupt efter förmåga. Använd stol eller soffa som stöd för bakre foten.","https://www.youtube.com/watch?v=2C-uNgKwPLE"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Kontrollerade reps. Använd band om du behöver.","https://www.youtube.com/watch?v=eGo4IYlbE5g"],
+  ["Push-ups","Push · horisontellt","3 × 8–20","Välj en variant där du kan arbeta med bra teknik.","https://www.youtube.com/watch?v=IODxDxX7oi4"],
+  ["AMRAP 8 min","AMRAP","8 min","Så många varv som möjligt på 8 minuter: 5 pull-ups, 10 push-ups, 15 air squats och 20 mountain climbers. Logga rundor + extra reps efteråt.","https://www.youtube.com/watch?v=U5n9LkT2b9A"]
+ ]},
+
 ];
 
 let day = Number(localStorage.getItem("day") || 0);
+let workoutMode = localStorage.getItem("workoutMode") || "gym";
 let checks = JSON.parse(localStorage.getItem("checks") || "{}");
+if(workoutMode==="gym"){
+  const migrated={};
+  Object.entries(checks).forEach(([k,v])=>{ migrated["gym-"+k]=v; });
+  checks=migrated;
+}
 let history = JSON.parse(localStorage.getItem("history") || "[]");
 let logs = JSON.parse(localStorage.getItem("logs") || "{}");
 let view = localStorage.getItem("view") || "workout";
@@ -149,13 +192,16 @@ function migrateData(){
 migrateData();
 
 function saveAll(){
+  localStorage.setItem("workoutMode",workoutMode);
   localStorage.setItem("checkWeek",weekKey());
   localStorage.setItem("day",day);
   localStorage.setItem("checks",JSON.stringify(checks));
   localStorage.setItem("history",JSON.stringify(history));
   localStorage.setItem("logs",JSON.stringify(logs));
 }
-function key(i){return day+"-"+i}
+function activeWorkouts(){return workoutMode==="home"?homeWorkouts:workouts;}
+function activeWorkout(){return activeWorkouts()[day];}
+function key(i){return workoutMode+"-"+day+"-"+i}
 function dateKey(d=new Date()){return d.toISOString().slice(0,10)}
 function weekKey(d=new Date()){
   const x=new Date(d);
@@ -399,10 +445,10 @@ function render(){
  ensureCurrentWeek();
  renderTabs();
  if(view==="history"){renderHistory();return}
- const w=workouts[day];
+ const w=activeWorkout();
  let done=w.ex.filter((_,i)=>checks[key(i)]).length;
- let completed=history.some(x=>x.date===dateKey()&&x.day===day);
- let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">För styrkeövningar: bygg först reps inom angivet spann och öka sedan vikten. Pull-ups, carries och AMRAP har egen progression.</div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
+ let completed=history.some(x=>x.date===dateKey()&&x.day===day&&x.mode===workoutMode);
+ let html=`<section class="hero"><h2>${w.title}</h2><p>${w.desc}</p><div class="meta"><span class="pill">⏱ 30–45 min</span><span class="pill">🏋️ Hantlar</span><span class="pill">${done}/${w.ex.length} klara</span></div><div class="progress"><div class="bar" style="width:${done/w.ex.length*100}%"></div></div><div class="details" style="margin-top:12px">För styrkeövningar: bygg först reps inom angivet spann och öka sedan vikten. Pull-ups, carries och AMRAP har egen progression.</div><div class="mode-switch"><button class="${workoutMode==="gym"?"active":""}" onclick="setWorkoutMode('gym')">🏋️ Gym</button><button class="${workoutMode==="home"?"active":""}" onclick="setWorkoutMode('home')">🏠 Hemma</button></div><div class="actions" style="margin-top:14px"><button onclick="completeWorkout()" ${completed?"disabled":""}>${completed?"✓ Passet är sparat":"✓ Markera passet som klart"}</button></div></section>`;
  html+=`<div class="section-title">Passet</div>`;
  w.ex.forEach((e,i)=>{
    if(isAmrap(e[0])){
@@ -424,19 +470,27 @@ function render(){
  document.getElementById("content").innerHTML=html;
 }
 function completeWorkout(){
- const today=dateKey();
- if(!history.some(x=>x.date===today&&x.day===day)){
-   history.push({date:today,day:day,name:workouts[day].name,title:workouts[day].title});
+ const today=dateKey(), w=activeWorkout();
+ if(!history.some(x=>x.date===today&&x.day===day&&x.mode===workoutMode)){
+   history.push({date:today,day:day,name:w.name,title:w.title,mode:workoutMode});
    history.sort((a,b)=>a.date.localeCompare(b.date));
  }
  saveAll(); render();
 }
+function setWorkoutMode(mode){
+ if(mode!==workoutMode){
+   workoutMode=mode;
+   saveAll();
+ }
+ render();
+}
+
 function toggle(i,v){
   const article=document.querySelectorAll(".exercise")[i];
-  const exerciseName=workouts[day].ex[i][0];
+  const exerciseName=activeWorkout().ex[i][0];
   if(article){
     const x=getLog(dateKey(),exerciseName);
-    const n=setCount(exerciseName,workouts[day].ex[i][2]);
+    const n=setCount(exerciseName,activeWorkout().ex[i][2]);
     if(isPullup(exerciseName)){
       const rows=article.querySelectorAll(".sets .setrow");
       rows.forEach((row,j)=>{
@@ -494,6 +548,9 @@ function importData(file){
       }
       day=Number(data.day||0);
       checks=data.checks||{};
+      const importedChecks={};
+      Object.entries(checks).forEach(([k,v])=>{ importedChecks[k.includes("-")&&k.startsWith("gym-")?k:"gym-"+k]=v; });
+      checks=importedChecks;
       history=data.history||[];
       logs=data.logs||{};
       localStorage.setItem("dataVersion",String(DATA_VERSION));
