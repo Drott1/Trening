@@ -700,7 +700,7 @@ function renderHistory(){
  else{
    html+=`<div class="section-title">Progression per övning</div>`;
    const seen=new Set();
-   workouts.forEach(w=>w.ex.forEach(e=>{
+   [...workouts,...homeWorkouts].forEach(w=>w.ex.forEach(e=>{
      const id=exerciseId(e[0]);if(seen.has(id))return;seen.add(id);
      const entries=exerciseHistory(e[0]);if(!entries.length)return;
      const latest=entries[entries.length-1];
@@ -732,17 +732,17 @@ function renderHistory(){
    const grouped={};sorted.forEach(x=>(grouped[weekKey(x.date)]??=[]).push(x));
    Object.entries(grouped).forEach(([wk,items])=>{html+=`<article class="exercise"><div class="name">${wk}</div><div class="details" style="margin-top:9px">${items.map(x=>`<div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0"><span>${x.name}</span><span style="color:var(--muted)">${prettyDate(x.date)}</span></div>`).join("")}</div></article>`});
    html+=`<div class="section-title">Alla pass</div>`;
-   html+=sorted.map(x=>`<article class="exercise"><div class="row"><div style="font-size:22px">✓</div><div><div class="name">${x.title}</div><div class="details">${prettyDate(x.date)} · ${x.name}</div></div></div></article>`).join("");
+   html+=sorted.map(x=>`<article class="exercise"><div class="row"><div style="font-size:22px">✓</div><div><div class="name">${x.title}</div><div class="details">${x.mode==="home"?"🏠 Hemma":"🏋️ Gym"} · ${prettyDate(x.date)} · ${x.name}</div></div></div></article>`).join("");
  }
- document.getElementById("content").innerHTML=html;
- document.querySelectorAll('canvas[id^="chart-"]').forEach(c=>chartCanvas(decodeURIComponent(c.id.slice(6)),c.id));
  const ah=amrapHistory();
  if(ah.length){
    html+=`<div class="section-title">🔥 AMRAP-resultat</div>`;
    ah.slice().reverse().forEach(x=>{
-     html+=`<article class="exercise"><div class="name">${prettyDate(x.date)} · ${amrapResultText(x)}</div><div class="details">${amrapWeightText(x)}</div></article>`;
+     html+=`<article class="exercise"><div class="name">${x.mode==="home"?"🏠 Hemma":"🏋️ Gym"} · ${prettyDate(x.date)} · ${amrapResultText(x)}</div><div class="details">${amrapWeightText(x)}</div></article>`;
    });
  }
+ document.getElementById("content").innerHTML=html;
+ document.querySelectorAll('canvas[id^="chart-"]').forEach(c=>chartCanvas(decodeURIComponent(c.id.slice(6)),c.id));
 
 }
 function weekStart(wk){
