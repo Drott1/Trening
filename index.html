@@ -142,6 +142,24 @@ const homeWorkouts = [
 
 ];
 
+
+const comboWorkouts = {
+ gym:{name:"Kombopass",title:"Full Body Express",desc:"Ett effektivt helkroppspass när veckan bara rymmer ett träningspass.",ex:[
+  ["Goblet squat","Squat","3 × 10–12","Håll hanteln nära bröstet. Sänk dig kontrollerat och res dig med hela foten.","https://www.youtube.com/watch?v=MeIiidth5gM"],
+  ["Rumänska marklyft","Hinge","3 × 10–12","Skjut höften bakåt med mjuka knän och håll hantlarna nära benen.","https://www.youtube.com/watch?v=aa57T45iFSE"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Gör kontrollerade reps. Använd band eller assisterad maskin vid behov.","https://www.youtube.com/watch?v=eGo4IYlbE5g"],
+  ["Hantel thruster","Squat + push","3 × 8–12","Kombinera en kontrollerad knäböj med en kraftfull press över huvudet.","https://www.youtube.com/watch?v=1KYPZ-Jzo3w"],
+  ["Farmer's carry","Carry","2 × 40–60 sek","Gå stadigt med tunga hantlar och håll bålen stabil.","https://www.youtube.com/watch?v=Kh0871u60z0"]
+ ]},
+ home:{name:"Kombopass",title:"Hemma · Full Body Express",desc:"Ett komplett kroppsviktspass med stång och ringar när tiden är knapp.",ex:[
+  ["Bulgarian split squat","Squat","3 × 8–15/ben","Bakre fot på stol eller soffa. Sänk dig kontrollerat och tryck upp med främre benet.","https://www.youtube.com/watch?v=2C-uNgKwPLE"],
+  ["Glute bridge","Hinge · säte","3 × 12–20","Pressa höften upp genom hälarna och spänn sätet i toppläget.","https://www.youtube.com/watch?v=OUgsJ8-Vi0E"],
+  ["Pull-up / assisterad pull-up","Pull · vertikalt","3 × 5–10","Använd stången hemma. Kör assisterat med band om du behöver.","https://www.youtube.com/watch?v=eGo4IYlbE5g"],
+  ["Push-ups","Push · horisontellt","3 × 8–20","Spänn bålen och sänk bröstet kontrollerat. Anpassa höjden efter dagsformen.","https://www.youtube.com/watch?v=IODxDxX7oi4"],
+  ["Pilates core","Core","2–3 × 30–60 sek","Välj 2–3 kontrollerade bålövningar, till exempel dead bug, toe taps eller hollow hold.","https://www.youtube.com/watch?v=K56Z12XNQ5c"]
+ ]}
+};
+
 let day = Number(localStorage.getItem("day") || 0);
 let workoutMode = localStorage.getItem("workoutMode") || "gym";
 let checks = JSON.parse(localStorage.getItem("checks") || "{}");
@@ -214,7 +232,7 @@ function saveAll(){
   localStorage.setItem("history",JSON.stringify(history));
   localStorage.setItem("logs",JSON.stringify(logs));
 }
-function activeWorkouts(){return workoutMode==="home"?homeWorkouts:workouts;}
+function activeWorkouts(){return [...(workoutMode==="home"?homeWorkouts:workouts),comboWorkouts[workoutMode]];}
 function activeWorkout(){return activeWorkouts()[day];}
 function key(i){return workoutMode+"-"+day+"-"+i}
 function dateKey(d=new Date()){return d.toISOString().slice(0,10)}
@@ -256,7 +274,7 @@ function isCarry(name){return name.toLowerCase().includes("carry");}
 function isAmrap(name){return name==="AMRAP 8 min";}function isHomeTimed(name){return workoutMode==="home" && name==="Pilates core";}
 function isHomeBodyweight(name){
   if(workoutMode!=="home") return false;
-  return ["Air squat","Push-ups","Bulgarian split squat","Bakåtutfall → knälyft","Ring rows","Devil's press utan hantlar"].includes(name);
+  return ["Air squat","Push-ups","Bulgarian split squat","Bakåtutfall → knälyft","Ring rows","Devil's press utan hantlar","Glute bridge"].includes(name);
 }
 function amrapKey(date=dateKey(), workoutDay=3, mode=workoutMode){return date+"|"+mode+"|"+workoutDay+"|amrap";}
 function getAmrapLog(date=dateKey(), workoutDay=3){
@@ -489,7 +507,7 @@ function previousResult(name,mode=workoutMode){
 }
 function renderTabs(){
  const t=document.getElementById("tabs"); t.innerHTML="";
- workouts.forEach((w,i)=>{
+ activeWorkouts().forEach((w,i)=>{
    const b=document.createElement("button");
    b.className="tab"+(view==="workout"&&i===day?" active":"");
    b.textContent=w.name;
@@ -700,7 +718,7 @@ function renderHistory(){
  else{
    html+=`<div class="section-title">Progression per övning</div>`;
    const seen=new Set();
-   [...workouts,...homeWorkouts].forEach(w=>w.ex.forEach(e=>{
+   [...workouts,...homeWorkouts,comboWorkouts.gym,comboWorkouts.home].forEach(w=>w.ex.forEach(e=>{
      const id=exerciseId(e[0]);if(seen.has(id))return;seen.add(id);
      const entries=exerciseHistory(e[0]);if(!entries.length)return;
      const latest=entries[entries.length-1];
